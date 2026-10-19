@@ -382,10 +382,16 @@ public sealed class MainViewModel : ObservableObject
     // ---------------- localization ----------------
 
     public string UnitsButtonText => LocalizationManager.Get("BtnUnits", SpeedFormatter.CapUnit(Units));
-    public string ThemeButtonText => LocalizationManager.Get("BtnTheme",
-        Theme == AppTheme.Dark ? LocalizationManager.Get("ThemeDark") : LocalizationManager.Get("ThemeLight"));
-    public string LanguageButtonText => LocalizationManager.Get("BtnLanguage",
-        LocalizationManager.CurrentLanguage == LocalizationManager.Language.English ? "English" : "Español");
+
+    /// <summary>Label only shows the current theme ("Oscuro"/"Claro", "Dark"/"Light").</summary>
+    public string ThemeButtonText => Theme == AppTheme.Dark
+        ? LocalizationManager.Get("ThemeDark")
+        : LocalizationManager.Get("ThemeLight");
+
+    /// <summary>Label only shows the current language's own name ("Español"/"English").</summary>
+    public string LanguageButtonText => LocalizationManager.CurrentLanguage == LocalizationManager.Language.English
+        ? "English"
+        : "Español";
 
     private void ApplyLanguage()
     {

@@ -6,7 +6,7 @@
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
         Background="{DynamicResource BackgroundBrush}"
         Foreground="{DynamicResource TextBrush}"
-        FontFamily="Segoe UI" FontSize="13"
+        FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" FontWeight="Medium"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
     <Grid Margin="18">
         <Grid.RowDefinitions>

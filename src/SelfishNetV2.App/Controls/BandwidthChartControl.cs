@@ -43,7 +43,8 @@ public sealed class BandwidthChartControl : FrameworkElement
         }
     }
 
-    private static readonly Typeface Face = new("Segoe UI");
+    private static readonly FontFamily ChartFont = new("Segoe UI Variable Text, Segoe UI");
+    private static readonly Typeface Face = new(ChartFont, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
 
     public BandwidthChartControl()
     {

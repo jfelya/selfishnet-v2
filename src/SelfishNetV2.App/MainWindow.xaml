@@ -3,12 +3,14 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:SelfishNetV2.App.Controls"
         Title="SelfishNet v2"
-        Width="1280" Height="780" MinWidth="1120" MinHeight="640"
+        Width="1280" Height="780" MinWidth="880" MinHeight="470"
+        WindowState="Maximized"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BackgroundBrush}"
         Foreground="{DynamicResource TextBrush}"
-        FontFamily="Segoe UI" FontSize="13"
-        UseLayoutRounding="True" SnapsToDevicePixels="True">
+        FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" FontWeight="Medium"
+        UseLayoutRounding="True" SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Ideal">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
@@ -87,7 +89,7 @@
                       SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
                       IsReadOnly="False" RowHeight="34" SelectionMode="Single">
                 <DataGrid.Columns>
-                    <DataGridTemplateColumn x:Name="ColName" Width="2*" CanUserSort="False">
+                    <DataGridTemplateColumn x:Name="ColName" Width="1.5*" MinWidth="110" CanUserSort="False">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" ToolTip="{Binding DisplayName}">
@@ -104,7 +106,7 @@
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn x:Name="ColIp" Width="108" CanUserSort="False" IsReadOnly="True">
+                    <DataGridTemplateColumn x:Name="ColIp" Width="1*" MinWidth="88" CanUserSort="False" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding IpText}" FontFamily="Consolas"/>
@@ -112,7 +114,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn x:Name="ColMac" Width="148" CanUserSort="False" IsReadOnly="True">
+                    <DataGridTemplateColumn x:Name="ColMac" Width="1.3*" MinWidth="112" CanUserSort="False" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding MacText}" FontFamily="Consolas"
@@ -121,7 +123,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn x:Name="ColDown" Width="138" CanUserSort="False" IsReadOnly="True">
+                    <DataGridTemplateColumn x:Name="ColDown" Width="1.1*" MinWidth="92" CanUserSort="False" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding DownText}" Foreground="{DynamicResource ChartDownBrush}"
@@ -130,7 +132,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn x:Name="ColUp" Width="138" CanUserSort="False" IsReadOnly="True">
+                    <DataGridTemplateColumn x:Name="ColUp" Width="1.1*" MinWidth="92" CanUserSort="False" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding UpText}" Foreground="{DynamicResource ChartUpBrush}"
@@ -139,7 +141,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn x:Name="ColDownCap" Width="126" CanUserSort="False">
+                    <DataGridTemplateColumn x:Name="ColDownCap" Width="0.9*" MinWidth="82" CanUserSort="False">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding CapDownText}" HorizontalAlignment="Center"/>
@@ -153,7 +155,7 @@
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn x:Name="ColUpCap" Width="126" CanUserSort="False">
+                    <DataGridTemplateColumn x:Name="ColUpCap" Width="0.9*" MinWidth="82" CanUserSort="False">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding CapUpText}" HorizontalAlignment="Center"/>
