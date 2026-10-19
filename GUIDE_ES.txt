@@ -49,9 +49,9 @@ llama hombre en el medio (man-in-the-middle).
 
 La app repite esas respuestas falsas con regularidad (cada 2 segundos
 en el motor Moderno, cada 5 segundos en el motor Legacy) porque los
-dispositivos renuevan sus cachés ARP. Si la app se detiene, los
-dispositivos vuelven a la verdad por sí solos, pero además la app
-restaura todo de inmediato (ver sección 6).
+dispositivos renuevan sus cachés ARP. Las entradas falsas no son
+permanentes, pero además la app restaura todo de inmediato al
+detenerse (ver sección 6).
 
 --------------------------------------------------------------------
 3. CÓMO SE REENVÍA Y SE LIMITA EL TRÁFICO
@@ -103,14 +103,17 @@ bytes por segundo, así que cambiar de unidad nunca cambia tus límites.
 4. QUÉ LEE LA APP (Y QUÉ NO)
 --------------------------------------------------------------------
 La app lee las cabeceras de los paquetes para conocer direcciones y
-medir velocidades. No descifra tráfico, no guarda el contenido de los
-paquetes y no registra sitios web. En disco solo guarda:
+medir velocidades. No descifra tráfico y no escribe en disco el
+contenido de los paquetes, registros de tráfico ni historial de
+navegación. En esta versión los únicos archivos que crea son:
 
-  - Tus ajustes (idioma, tema, unidades, último adaptador, motor).
-  - Nombres y límites de dispositivos, recordados por dirección MAC,
-    para que vuelvan la próxima vez.
+  - settings.json: tus ajustes (idioma, tema, unidades, último
+    adaptador, motor).
+  - known_devices.json: nombres y límites de dispositivos, recordados
+    por dirección MAC, para que vuelvan la próxima vez.
 
-Ambos archivos viven en %AppData%\SelfishNetV2\.
+Ambos viven en %AppData%\SelfishNetV2\. No se escribe ningún registro
+de diagnóstico ni de tráfico.
 
 --------------------------------------------------------------------
 5. DESCUBRIMIENTO DE DISPOSITIVOS
@@ -133,8 +136,9 @@ genuinos con las direcciones reales:
 
   - 35 pares de correcciones unicast (dispositivo <-> router) por
     dispositivo.
-  - 3 anuncios broadcast para el router y 3 por cada dispositivo, para
-    corregir incluso a máquinas que nunca respondieron.
+  - 3 anuncios broadcast para el router y 3 por cada dispositivo, que
+    intentan refrescar las cachés de máquinas que no respondieron a
+    nuestras correcciones unicast.
 
 La app recuerda cada dispositivo que realmente envenenó, sin importar
 las casillas, así que nunca "olvida" reparar uno: desmarcar un
@@ -143,22 +147,26 @@ cambiar de motor, cambiar de adaptador o cerrar la app ejecutan la
 misma reparación.
 
 Si la app se cierra a la fuerza (Administrador de tareas, corte de
-luz), no puede reparar. No es permanente: las entradas ARP caducan
-solas en segundos o pocos minutos, o de inmediato cuando un
-dispositivo vuelve a preguntar. Un Detener o Cerrar normal siempre
-repara primero.
+luz), no puede reparar. No es permanente: las entradas ARP pueden
+permanecer hasta que se sobrescriban o caduquen, y cuánto tarda eso
+varía según el dispositivo y el sistema operativo. Un Detener o
+Cerrar normal siempre repara primero.
 
 --------------------------------------------------------------------
 7. QUÉ NECESITA PARA FUNCIONAR
 --------------------------------------------------------------------
   - Windows 10 u 11. Hay una versión para 64 bits y otra para 32 bits
     (usa la de x64 en una PC moderna).
-  - Permisos de Administrador: enviar paquetes de red crudos los
-    requiere. La app los pide al iniciar.
   - Npcap (https://npcap.com) o el antiguo WinPcap. Npcap es el
     controlador moderno y firmado; la app lo detecta automáticamente.
     Es el único componente externo: la app en sí es un solo .exe
     portátil que no necesita instalar .NET.
+  - Los permisos de Administrador pueden ser necesarios: el acceso a
+    paquetes crudos lo controla el driver. La app inicia como usuario
+    normal; si el driver está restringido a administradores (una
+    opción al instalar Npcap), ofrece reiniciar con elevación. Si
+    Npcap se instaló con acceso sin restricciones, no hace falta
+    elevación.
 
 --------------------------------------------------------------------
 8. LÍMITES Y CASOS ESPECIALES CONOCIDOS
@@ -185,7 +193,8 @@ repara primero.
 --------------------------------------------------------------------
 9. INICIO RÁPIDO
 --------------------------------------------------------------------
-  1. Ejecuta SelfishNetV2.exe y acepta el aviso de Administrador.
+  1. Ejecuta SelfishNetV2.exe. Si Windows pide Administrador, acéptalo;
+     si no, la app inicia como usuario normal (ver sección 7).
   2. Elige tu adaptador de red (el que tiene la puerta de enlace de tu
      LAN).
   3. Los dispositivos aparecen solos; usa Descubrir si hace falta.

@@ -27,6 +27,7 @@ public partial class MainWindow : Window
         _vm.ChartTick += OnChartTick;
         _vm.UiStringsChanged += ApplyLocalization;
         _vm.ThemeChanged += OnThemeChanged;
+        _vm.ElevationRequested += OnElevationRequested;
 
         SourceInitialized += (_, _) => TitleBarHelper.Apply(this, ThemeManager.Current);
         Loaded += OnLoaded;
@@ -112,6 +113,14 @@ public partial class MainWindow : Window
     private bool OnConfirmRequested(string text, string title) =>
         MessageBox.Show(this, text, title, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
 
+    private void OnElevationRequested()
+    {
+        var result = MessageBox.Show(this, L("MsgElevationRequired"), L("AppTitle"),
+            MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (result == MessageBoxResult.Yes)
+            Infrastructure.ElevationHelper.RelaunchElevated();
+    }
+
     private void OnChartTick(double totalDown, double totalUp, double selectedDown, double selectedUp)
     {
         TotalChart.PushSample(totalDown, totalUp);
@@ -174,6 +183,7 @@ public partial class MainWindow : Window
         _vm.ChartTick -= OnChartTick;
         _vm.UiStringsChanged -= ApplyLocalization;
         _vm.ThemeChanged -= OnThemeChanged;
+        _vm.ElevationRequested -= OnElevationRequested;
         _vm.Shutdown();
     }
 }

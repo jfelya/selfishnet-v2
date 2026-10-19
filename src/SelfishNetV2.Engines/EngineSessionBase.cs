@@ -130,7 +130,10 @@ public abstract class EngineSessionBase : IEngineSession
             }
             catch (PcapException ex)
             {
-                RaiseError(EngineErrorKind.DriverOpen, ex.Message);
+                RaiseError(DriverAccessProbe.LooksLikeAccessDenied(ex.Message)
+                        ? EngineErrorKind.AccessDenied
+                        : EngineErrorKind.DriverOpen,
+                    ex.Message);
                 CloseCore(healIfNeeded: false);
                 return false;
             }
@@ -309,7 +312,10 @@ public abstract class EngineSessionBase : IEngineSession
         }
         catch (PcapException ex)
         {
-            RaiseError(EngineErrorKind.DriverOpen, ex.Message);
+            RaiseError(DriverAccessProbe.LooksLikeAccessDenied(ex.Message)
+                    ? EngineErrorKind.AccessDenied
+                    : EngineErrorKind.DriverOpen,
+                ex.Message);
             return false;
         }
     }

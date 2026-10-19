@@ -10,6 +10,17 @@ shaping), shipped as a **single portable Windows executable**.
 | English | [`GUIDE_EN.txt`](GUIDE_EN.txt) |
 | Español (Latinoamérica) | [`GUIDE_ES.txt`](GUIDE_ES.txt) |
 
+## Windows support
+
+| OS | Status |
+|---|---|
+| Windows 11 / 10 (1607+), x64 or x86 | Fully supported — `publish/x64` or `publish/x86` |
+| Windows 8.1 / 7 SP1 | Not supported by the .NET 8 build (options: `docs/WINDOWS_COMPATIBILITY.md`) |
+| Windows XP SP3 | Use the preserved original build in `reference/original-app-xp/` |
+
+The app starts **without administrator rights** when the Npcap driver allows it, and offers a
+single elevated restart only if the driver is restricted.
+
 ## Status — feature-complete rebuild (v2.0.0)
 
 | Area | State |

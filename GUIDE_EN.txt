@@ -49,9 +49,8 @@ man-in-the-middle.
 
 This app repeats those fake answers regularly (every 2 seconds on the
 Modern engine, every 5 seconds on the Legacy engine) because devices
-refresh their ARP caches. If the app stops, devices eventually go back
-to the truth on their own, but the app also restores everything
-immediately (see section 6).
+refresh their ARP caches. Fake entries are not permanent, but the app
+also restores everything immediately when it stops (see section 6).
 
 --------------------------------------------------------------------
 3. HOW TRAFFIC IS FORWARDED AND LIMITED
@@ -101,14 +100,17 @@ so changing units never changes your limits.
 4. WHAT THE APP READS (AND WHAT IT DOES NOT)
 --------------------------------------------------------------------
 The app reads packet headers to learn addresses and measure speeds.
-It does not decrypt traffic, does not store the content of packets,
-and does not log websites. What it keeps on disk is only:
+It does not decrypt traffic, and it does not write packet contents,
+traffic logs or browsing history to disk. In this build the only files
+it creates are:
 
-  - Your settings (language, theme, units, last adapter, engine).
-  - Device names and limits, remembered by MAC address, so they come
-    back next time.
+  - settings.json: your settings (language, theme, units, last
+    adapter, engine).
+  - known_devices.json: device names and limits, remembered by MAC
+    address, so they come back next time.
 
-Both files live in %AppData%\SelfishNetV2\.
+Both live in %AppData%\SelfishNetV2\. No diagnostic or traffic log is
+written.
 
 --------------------------------------------------------------------
 5. DEVICE DISCOVERY
@@ -130,7 +132,8 @@ addresses:
 
   - 35 pairs of unicast corrections (device <-> router) per device.
   - 3 broadcast announcements for the router and 3 for each device,
-    so even machines that never answered are corrected.
+    which attempt to refresh caches on machines that did not answer
+    our unicast corrections.
 
 It remembers every device it actually poisoned, independently of the
 checkboxes, so it never "forgets" to heal a device: unchecking a
@@ -138,21 +141,24 @@ device mid-session heals it immediately, and stopping, switching
 engines, changing adapters or closing the app all run the same repair.
 
 If the app is force-killed (Task Manager, power loss), it cannot heal.
-That is not permanent: ARP entries expire on their own within seconds
-to a few minutes, or immediately when a device asks again. A normal
-Stop or Close always heals first.
+That is not permanent: ARP entries may remain until they are
+overwritten or expired, and how long that takes varies by device and
+operating system. A normal Stop or Close always heals first.
 
 --------------------------------------------------------------------
 7. WHAT IT NEEDS TO RUN
 --------------------------------------------------------------------
   - Windows 10 or 11. Builds are provided for 64-bit and 32-bit
     Windows (use the x64 one on a modern PC).
-  - Administrator rights: sending raw network packets requires it.
-    The app asks for elevation when it starts.
   - Npcap (https://npcap.com) or legacy WinPcap. Npcap is the modern,
     signed packet driver; the app detects it automatically. This is
     the only external component - the app itself is one portable exe
     with no .NET install needed.
+  - Administrator rights may be needed: raw packet access is controlled
+    by the packet driver. The app starts as a normal user; if the
+    driver is restricted to administrators (an Npcap install option),
+    it offers to restart elevated. If Npcap was installed with
+    unrestricted access, no elevation is needed.
 
 --------------------------------------------------------------------
 8. LIMITS AND KNOWN EDGE CASES
@@ -177,7 +183,8 @@ Stop or Close always heals first.
 --------------------------------------------------------------------
 9. QUICK START
 --------------------------------------------------------------------
-  1. Run SelfishNetV2.exe and accept the Administrator prompt.
+  1. Run SelfishNetV2.exe. If Windows asks for Administrator, accept;
+     otherwise the app starts as a normal user (see section 7).
   2. Choose your network adapter (the one with your LAN gateway).
   3. Devices appear automatically; use Discover if needed.
   4. Type a download/upload limit in the grid, or tick Block.

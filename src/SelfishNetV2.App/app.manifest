@@ -4,8 +4,10 @@
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
     <security>
       <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
-        <!-- Raw packet injection (ARP spoofing) requires elevation. -->
-        <requestedExecutionLevel level="requireAdministrator" uiAccess="false"/>
+        <!-- Start as a normal user. Npcap access depends on how the driver was
+             installed; the app probes it at startup and offers an elevated
+             restart only when the driver denies access. -->
+        <requestedExecutionLevel level="asInvoker" uiAccess="false"/>
       </requestedPrivileges>
     </security>
   </trustInfo>

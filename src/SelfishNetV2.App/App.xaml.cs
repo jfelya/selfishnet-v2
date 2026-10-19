@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Threading;
+using SelfishNetV2.App.Infrastructure;
 using SelfishNetV2.App.Theming;
 using SelfishNetV2.App.ViewModels;
 using SelfishNetV2.Drivers;
@@ -14,15 +15,6 @@ public partial class App : Application
     {
         base.OnStartup(e);
         DispatcherUnhandledException += OnUnhandledException;
-
-        // The app manifest requests elevation; this is a belt-and-braces check.
-        if (!AdapterService.IsAdministrator())
-        {
-            MessageBox.Show(LocalizationManager.Get("MsgAdminRequired"), "SelfishNet v2",
-                MessageBoxButton.OK, MessageBoxImage.Error);
-            Shutdown(1);
-            return;
-        }
 
         var settings = SettingsStore.Load();
         LocalizationManager.SetLanguage(settings.Language == "English"
@@ -56,7 +48,23 @@ public partial class App : Application
             orchestrator = new EngineOrchestrator(driver, KnownDevicesStore.Load(), kind);
         }
 
-        var vm = new MainViewModel(orchestrator, new AdapterService(driver), settings, driverProblem);
+        // Start unelevated whenever possible. The packet driver is the only thing
+        // that may need admin rights, and that is an Npcap install-time option.
+        bool driverRestricted = false;
+        if (driver != null)
+        {
+            var access = DriverAccessProbe.Probe(driver);
+            if (access == DriverAccess.Denied)
+            {
+                var answer = MessageBox.Show(LocalizationManager.Get("MsgElevationRequired"),
+                    "SelfishNet v2", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                if (answer == MessageBoxResult.Yes && ElevationHelper.RelaunchElevated())
+                    return; // elevated instance takes over
+                driverRestricted = true;
+            }
+        }
+
+        var vm = new MainViewModel(orchestrator, new AdapterService(driver), settings, driverProblem, driverRestricted);
         var window = new MainWindow(vm);
         MainWindow = window;
         window.Show();

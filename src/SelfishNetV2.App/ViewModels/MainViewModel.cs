@@ -19,6 +19,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly SettingsStore _settings;
     private readonly string? _driverProblem;
     private readonly Dispatcher _ui;
+    private bool _driverRestricted;
     private readonly Dictionary<uint, DeviceViewModel> _byIp = new();
 
     private string _statusText = "";
@@ -33,12 +34,14 @@ public sealed class MainViewModel : ObservableObject
     private bool _isEngineModern = true;
     private DeviceViewModel? _selectedDevice;
 
-    public MainViewModel(EngineOrchestrator? orch, AdapterService adapters, SettingsStore settings, string? driverProblem)
+    public MainViewModel(EngineOrchestrator? orch, AdapterService adapters, SettingsStore settings,
+        string? driverProblem, bool driverRestricted = false)
     {
         _orch = orch;
         _adapters = adapters;
         _settings = settings;
         _driverProblem = driverProblem;
+        _driverRestricted = driverRestricted;
         _ui = Dispatcher.CurrentDispatcher;
 
         Units = SpeedFormatter.Parse(_settings.UnitMode);
@@ -128,6 +131,9 @@ public sealed class MainViewModel : ObservableObject
 
     /// <summary>Theme was switched → the shell should repaint custom-drawn controls.</summary>
     public event Action? ThemeChanged;
+
+    /// <summary>The driver denied access mid-session → the shell offers an elevated restart.</summary>
+    public event Action? ElevationRequested;
 
     public RelayCommand DiscoverCommand { get; }
     public RelayCommand ToggleShapingCommand { get; }
@@ -272,6 +278,13 @@ public sealed class MainViewModel : ObservableObject
 
     private void OnEngineError(EngineErrorEventArgs e)
     {
+        if (e.Kind == EngineErrorKind.AccessDenied)
+        {
+            _driverRestricted = true;
+            RefreshState();
+            ElevationRequested?.Invoke();
+            return;
+        }
         string text = e.Kind switch
         {
             EngineErrorKind.GatewayMacUnknown => LocalizationManager.Get("MsgGatewayUnknown"),
@@ -339,13 +352,15 @@ public sealed class MainViewModel : ObservableObject
         RefreshEngineToggles();
         StatusText = _orch == null
             ? LocalizationManager.Get("StatusNoDriver")
-            : state switch
-            {
-                EngineRunState.Shaping => LocalizationManager.Get("StatusRedirecting",
-                    _orch.Catalog.SpoofTargets().Count),
-                EngineRunState.Idle => LocalizationManager.Get("StatusReady") + $" ({_orch.DriverBackend})",
-                _ => LocalizationManager.Get("StatusNoAdapter"),
-            };
+            : _driverRestricted && state != EngineRunState.Shaping
+                ? LocalizationManager.Get("StatusDriverRestricted")
+                : state switch
+                {
+                    EngineRunState.Shaping => LocalizationManager.Get("StatusRedirecting",
+                        _orch.Catalog.SpoofTargets().Count),
+                    EngineRunState.Idle => LocalizationManager.Get("StatusReady") + $" ({_orch.DriverBackend})",
+                    _ => LocalizationManager.Get("StatusNoAdapter"),
+                };
         EngineBadge = _orch == null ? "" : $"{(_orch.CurrentKind == EngineKind.Modern ? LocalizationManager.Get("EngineModern") : LocalizationManager.Get("EngineLegacy"))} · {_orch.DriverBackend}";
     }
 

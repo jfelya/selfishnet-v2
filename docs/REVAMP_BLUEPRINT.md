@@ -236,3 +236,20 @@ window includes observed (not only forwarded) bytes — both are intentional and
 | Packaging | Dual-arch publish (`win-x64` 68 MB / `win-x86` 63 MB); ReadyToRun disabled to cut ≈4 MB (WPF trim is unsupported). |
 
 Test count: **81/81 green** (added reactive, broadcast-heal, untarget-heal, auto-scan, burst-stress).
+
+### Data retention (verified against the implementation, 2026-10-19)
+
+The app creates exactly two files, both in `%AppData%\SelfishNetV2\`: `settings.json` (language,
+theme, units, last adapter, engine) and `known_devices.json` (custom names, caps, block/spoof
+flags, last IP / last seen per MAC). There is **no logging framework** and no
+`File.Append*`, `Trace`, `EventLog`, `Console` or stream-writer path in the codebase; packet
+payloads are only parsed as headers for classification/counters and are never written to disk.
+Privacy statements in `GUIDE_EN.txt` / `GUIDE_ES.txt` are scoped to this build and to this
+verified file set.
+
+### Administrator model (2026-10-19)
+
+Manifest is `asInvoker`. Startup probes the packet driver with a throwaway capture handle; when
+Npcap permits standard-user access the app runs fully unelevated, otherwise it offers one
+elevated restart (UAC). Mid-session `AccessDenied` errors surface the same prompt. Full rationale:
+`docs/WINDOWS_COMPATIBILITY.md`.

@@ -11,6 +11,8 @@ public enum EngineRunState { Closed, Idle, Shaping }
 public enum EngineErrorKind
 {
     DriverOpen,
+    /// <summary>The packet driver denied access (restricted to administrators).</summary>
+    AccessDenied,
     GatewayMacUnknown,
     ReceiveError,
     AbiMismatch,
