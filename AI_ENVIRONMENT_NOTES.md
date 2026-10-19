@@ -1,114 +1,198 @@
-# AI Environment Notes & Project Memory: SelfishNet v2 (Revamp)
+# SelfishNet v2 — Project Context (single source of truth)
 
-## 1. Project Mission & Context
-- **Repository:** `SelfishNet v2`
-- **Objective:** Rebuild the classic SelfishNet utility from zero as a modern, standalone, portable
-  Windows `.exe` with a **dual-engine architecture** (spec-locked *Legacy* engine + optimized
-  *Modern* engine, switchable at runtime), a modern dark/light UI with live bandwidth charts, and
-  bilingual support (English US / Latin American Spanish, hot-swappable).
-- **Author/Owner:** Fely
-- **Current phase (2026-10-19): FIELD-TESTED, HARDENED, OS-CERTIFIED BASE.** All layers implemented;
-  build clean, **85/85 tests pass**, triple-arch portable exes (`publish/x64` ~68 MB,
-  `publish/x86` ~63 MB, `publish/arm64` ~65 MB). Supported OS floor is declared (Win10 1607)
-  and guard-tested; see `docs/WINDOWS_COMPATIBILITY.md`. Win7/XP are backlogged in `docs/PENDING.md`.
-  First real-network test passed (both engines limited a phone, engine switching worked).
-  Post-acceptance changes: reactive ARP defense + 2 s re-poison (Modern), registry-backed
-  healing with broadcast gratuitous frames, heal-on-untarget/evict/adapter-switch, 60 s
-  auto-discovery, dark-theme readability fix, single language button, unit-aware charts,
-  x64+x86+arm64 publishing, `asInvoker` + driver-access probe (elevate only when needed),
-  session-end healing (logoff/shutdown) and retry of outstanding heal claims on Close.
-  Remaining polish comes from user feedback rounds.
-- **Git:** repo initialized, remote `https://github.com/jfelya/selfishnet-v2`.
-- **UI verification method (no admin/UAC needed):** a temporary console harness referencing the App
-  assembly, calling `new App().InitializeComponent()`, constructing `MainWindow`, then
-  `Measure/Arrange/UpdateLayout` + theme/command exercise. This caught a real bug — use
-  **component-relative pack URIs** (`pack://application:,,,/{AssemblyName};component/...`) for theme
-  dictionaries; application-relative URIs break when the shell is hosted by another exe.
+> **Read this first.** Git history was intentionally rewritten on 2026-10-19 to purge
+> ~200 MB of committed binaries, so this file — not the commit log — carries the project
+> story, decisions and state. It is kept current after every working session.
+>
+> Deeper documents: `docs/REVAMP_BLUEPRINT.md` (master plan and defect catalogue),
+> `docs/PROTOTYPE_POSTMORTEM.md` (why the prototype failed), `docs/WINDOWS_COMPATIBILITY.md`
+> (OS contract), `docs/PENDING.md` (deferred work), `docs/ORIGINAL_FINDINGS.md`
+> (verified mechanics of the 2007 original), `tools/README.md` (maintenance scripts).
 
 ---
 
-## 2. Golden Rules (Carried Forward — Still Binding)
-1. **Never alter or delete the original binaries** in `reference/original-app/`; they are the golden
-   verification references.
-2. **Byte-for-byte frame fidelity** with `CArp::buildArpPacket` / `CArp::redirector` is enforced via
-   golden-vector parity tests (42-byte Ethernet II + ARP, offsets documented in §3).
-3. Every UI string routes through `LocalizationManager.Get(key)` with `OnLanguageChanged` subscription.
-4. **Driver safety:** check Npcap first (`C:\Windows\System32\Npcap\wpcap.dll`), fall back to WinPcap
-   (`C:\Windows\System32\wpcap.dll`). Never register the obsolete 32-bit `npf.sys` on 64-bit Windows.
-5. **Shutdown discipline:** `pcap_breakloop()` → join worker → `pcap_close()`. Never close a handle
-   whose worker may be blocked in `pcap_next_ex()` (prototype bug C2).
+## 1. What this project is
 
----
+A from-scratch revamp of the classic **SelfishNet** LAN bandwidth controller (2007):
+ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocking, rebuilt as a
+**portable Windows desktop app** with a modern UI.
 
-## 3. Verified Original Mechanics (authoritative — supersedes old analysis where conflicting)
-- **Capture:** non-promiscuous, `snaplen=65535` (F1). Timeout relaxed 1 ms → 20 ms for CPU.
-- **Forwarder classification** is by Ethernet **source MAC**: local → count only; router → download
-  (match DST IP); else → upload (match SRC MAC). `"ip"` BPF filter, no EtherType re-check (F2).
-- **Spoof = 4 frames/victim** every 5000 ms: poison-to-victim, poison-to-router, self-refresh
-  (re-teaches our listener the true router MAC), one inert leftover (F3).
-- **Router MAC learning is active**: broadcast ARP request; listener learns from the Ethernet source
-  field when sender IP == router IP (F4).
-- **Caps:** `if (cap != 0 && cap <= bytesThisSecond) drop` — hard 1-second window in Legacy;
-  token bucket (hi-res clock, clamped burst) in Modern (F6).
-- **Unspoof:** 35 rapid genuine ARP frames per device on Stop/exit; also on eviction and engine switch.
-- **Upload shaping requires the victim to be poisoned** — duplicate-forward quirk is original behavior (F5).
+- **Owner:** Fely. **Remote:** `https://github.com/jfelya/selfishnet-v2` (branch `main`).
+- **Stack:** C# / .NET 8 / WPF, self-contained single-file executables (x64, x86, ARM64).
+- **Bilingual:** English (US) and Latin American Spanish (es-419), hot-swappable.
+- **Defaults:** Spanish UI + dark theme, window starts maximized.
+- **Only external prerequisite:** Npcap (or legacy WinPcap). The app itself needs no installer.
 
-## 4. Prototype Defects That Must Not Recur (full detail: REVAMP_BLUEPRINT.md §1.2)
-- **C1:** `pcap_pkthdr` layout — native Windows struct is 16 bytes with 32-bit `long`s
-  (`int tv_sec; int tv_usec; uint caplen; uint len;` in C#). Prototype used 64-bit `long`s → garbage lengths.
-- **C2:** `pcap_close` while worker blocked in `pcap_next_ex` → use-after-free.
-- **C3:** evicting a silently-spoofed device orphans its poisoned ARP cache; 20 s keep-alive probe was dropped.
-- **H1/H2:** per-packet allocations + `ToString()` identity in the hot path → use spans, pooling,
-  `uint`/`ulong` keys.
-- **H3:** token bucket must use `Stopwatch.GetTimestamp()` and never refill to 100% on cap change.
-- **M2:** never forward to `FF:FF:FF:FF:FF:FF` when the gateway MAC is unknown — gate the forwarder.
+## 2. Current state (verified 2026-10-19)
 
----
+| Item | State |
+|---|---|
+| Build | `dotnet build src/SelfishNetV2.sln -c Release` → 0 warnings, 0 errors |
+| Tests | **85/85 green** in ~6 s (no hardware, no admin) |
+| Field test | Real LAN: both engines limited a phone; runtime engine switch worked; healing worked |
+| Artifacts | `SelfishNetV2-x64.exe` 68.5 MB · `-x86.exe` 63.3 MB · `-arm64.exe` 64.9 MB (project root) |
+| OS support | Windows 10 1607 → 22H2 and all Windows 11 releases; floor declared and guard-tested |
+| Elevation | Starts unelevated; offers one elevated restart only if Npcap restricts the driver |
+| Repo | Source-only (binaries untracked); history rewritten to drop committed exes |
 
-## 5. Repository Structure (current, tidy)
+## 3. How to build, test, publish, clean
+
+```powershell
+dotnet build src/SelfishNetV2.sln -c Release      # build everything
+dotnet test  src/SelfishNetV2.sln -c Release      # 85 tests, no hardware/admin needed
+src\publish.bat                                    # → publish\{x64,x86,arm64}\SelfishNetV2.exe
+tools\clean.cmd                                    # reclaim build output (~1 GB after publishing)
+```
+
+Verification without UAC (used throughout development): a throwaway console project referencing
+`SelfishNetV2.App`, calling `new App().InitializeComponent()`, constructing `MainWindow` and then
+`Measure/Arrange/UpdateLayout` + exercising theme/language/unit commands. It catches runtime XAML
+and resource errors that a compile cannot. Published exes can also simply be launched (manifest is
+`asInvoker`) and closed after a few seconds to prove startup.
+
+## 4. Architecture in brief
+
+```
+WPF shell (MVVM, themes, charts)
+   │  DTOs / events only — never pcap types
+EngineOrchestrator (owns the ACTIVE session, performs swaps)
+   │  IEngineSession contract
+LegacyEngine        |  ModernEngine
+   │                │
+Packet I/O: IPcapDriver → WpcapDriver (Npcap → WinPcap) | LoopbackDriver (tests)
+```
+
+- **App core owns the `DeviceCatalog`** (devices, caps, names, flags) — it survives engine switches.
+- **Two engines, one wire protocol.** Frame bytes come from the shared, parity-tested
+  `ArpFrameBuilder`; only policy differs:
+
+| Aspect | Legacy (spec-locked 2007) | Modern (default) |
+|---|---|---|
+| Spoof burst | 4 frames/victim incl. the inert codegen leftover | 3 functional frames |
+| Re-poison | every 5 000 ms | every 2 000 ms + double initial burst |
+| Reactive ARP defense | off | on (answers victim→gateway requests, router→victim replies, victim announcements) |
+| Cap policy | hard 1-second window (`cap != 0 && cap <= bytesThisSecond`) | token bucket (hi-res clock, 50 ms burst, single-packet deficit, clamp-not-refill) |
+| Capture filter | `ip` | `ip or (vlan and ip)` (802.1Q/802.1ad aware) |
+| Capture latency | 20 ms timeout | `mintocopy = 1` (wake per packet) |
+
+- **Forwarding** (original-faithful): classification by **source MAC** — own frames counted,
+  router-sourced = download (matched by destination IP), otherwise upload (matched by source MAC).
+  MACs are rewritten to relay. Numeric keys (`uint` IP / `ulong` MAC), zero allocation per packet,
+  one reused 64 KB transmit buffer.
+- **Healing** (best-effort by nature): registry `_poisoned` (ip→mac) independent of UI flags;
+  35 unicast restore pairs + 3+3 broadcast gratuitous announcements per device; gateway MAC
+  re-resolved once per pass; failed claims retried on Close; Windows logoff/shutdown heals
+  synchronously with a 3 s bound and skips the quit dialog. Force-kill and devices that reject
+  ARP corrections cannot be handled — the user guides say so.
+- **Discovery**: passive ARP learning always on + a quiet 60 s background sweep; manual Discover.
+- **Elevation**: `asInvoker` + `DriverAccessProbe`; the only thing that can need admin rights is
+  the Npcap driver, and that is an install-time option.
+- **Driver discipline**: one capture per handle, `breakloop → join → close`, `pcap_pkthdr` asserted
+  at 16 bytes (LLP64), first-frame sanity check, ABI guard test.
+
+## 5. Repository layout
 
 ```
 SelfishNet v2/
-├── AI_ENVIRONMENT_NOTES.md      # This file — session memory for AI agents
-├── README.md                    # Human-facing project index (status, run, robustness)
-├── docs/                        # All specifications & findings
-│   ├── ARCHITECTURE_ANALYSIS.md    # Original decompilation report (see ORIGINAL_FINDINGS for corrections)
-│   ├── ORIGINAL_FINDINGS.md        # Verified corrections from IL disassembly (authoritative)
-│   ├── MODERNIZATION_ROADMAP.md    # Original phase plan (superseded by REVAMP_BLUEPRINT)
-│   ├── LOCALIZATION_SPEC.md        # en-US / es-419 string matrix
-│   ├── UNIT_NOTATIONS.md           # KByte/s vs KBit/s rules (storage: bytes/s integers only)
-│   ├── PROTOTYPE_POSTMORTEM.md     # Why the prototype failed; failure-mode → fix map
-│   └── REVAMP_BLUEPRINT.md         # ★ Current master plan: bugs, stack decision, dual-engine design
-├── reference/                   # Read-only golden material — never modify
-│   ├── original-app/               # SelfishNetv0.2-beta_vista.exe + its DLLs, npf.sys, docs
-│   ├── redist/                     # Era installers (WinPcap, VC++ redists, .NET 4 web)
-│   └── tools/                      # analyze_app.ps1, disasm.ps1
-├── prototype/                   # Frozen "free model test" prototype (reference only, do not extend)
-│   ├── README_FREE_MODEL_TEST.md
-│   └── SelfishNetV2.Test/          # C#/.NET 8 WinForms source (+ published SelfishNetV2.exe)
-├── src/                         # ★ The revamp (implemented)
-│   ├── SelfishNetV2.sln
-│   ├── SelfishNetV2.Core/          # DTOs, DeviceCatalog, ArpFrameBuilder, PacketClassifier, TokenBucket
-│   ├── SelfishNetV2.Drivers/       # wpcap FFI, PcapCaptureSession, LoopbackDriver, ABI self-test
-│   ├── SelfishNetV2.Engines/       # IEngineSession, EngineSessionBase, LegacyEngine, ModernEngine
-│   ├── SelfishNetV2.Services/      # Localization, Settings, KnownDevices, EngineOrchestrator
-│   ├── SelfishNetV2.App/           # WPF shell (themes, charts, view models, views)
-│   ├── SelfishNetV2.Tests/         # 85 tests (parity, ABI, engines, swap, hammer, formatter, compat)
-│   └── publish.bat                 # builds ..\publish\{x64,x86,arm64}\SelfishNetV2.exe
-├── tools/                       # Maintenance: clean.cmd / clean.ps1, purge-binaries-from-history.ps1
-├── SelfishNetV2-{x64,x86,arm64}.exe  # Deliverables at the root — git-ignored, never committed
-└── publish/                     # Build output (git-ignored)
+├── AI_ENVIRONMENT_NOTES.md          # ★ this file
+├── README.md                        # human-facing overview, support matrix, hygiene
+├── GUIDE_EN.txt / GUIDE_ES.txt      # plain-language user guides (user-maintained, do not rewrite)
+├── VISUAL_DESIGN_SYSTEM.md          # user-provided design-system reference
+├── SelfishNetV2-{x64,x86,arm64}.exe # deliverables at the root — GIT-IGNORED, never commit
+├── docs/                            # blueprint, findings, OS support, postmortem, backlog, units, i18n spec
+├── reference/                       # golden material, never modify
+│   ├── original-app/                #   2007 build (Win7+ variant) + DLLs + npf.sys
+│   ├── original-app-xp/             #   2007 XP build (+ its README)
+│   ├── redist/                      #   era installers (WinPcap, VC++ redists, .NET 4)
+│   └── tools/                       #   analyze_app.ps1, disasm.ps1
+├── prototype/                       # frozen free-model prototype (reference only)
+├── src/                             # the revamp
+│   ├── SelfishNetV2.Core/           #   DTOs, DeviceCatalog, ArpFrameBuilder, PacketClassifier, TokenBucket
+│   ├── SelfishNetV2.Drivers/        #   wpcap FFI, PcapCaptureSession, LoopbackDriver, probes, ABI self-test
+│   ├── SelfishNetV2.Engines/        #   IEngineSession, EngineSessionBase, LegacyEngine, ModernEngine
+│   ├── SelfishNetV2.Services/       #   Localization, Settings, KnownDevices, EngineOrchestrator, formatter
+│   ├── SelfishNetV2.App/            #   WPF shell: Themes/, Theming/, Controls/, ViewModels/, Views/
+│   ├── SelfishNetV2.Tests/          #   85 tests
+│   ├── Directory.Build.targets      #   OS floor + WinRT projection exclusion
+│   └── publish.bat                  #   3-arch self-contained publish
+├── tools/                           # clean.cmd/ps1, purge-binaries-from-history.ps1, README
+└── publish/                         # build output (git-ignored)
 ```
 
-## 6. Environment Facts
-- OS: Windows (win32), working dir: `C:\Users\Fely\Documents\OpenCode\SelfishNet v2`.
-- Git repo: yes — remote `https://github.com/jfelya/selfishnet-v2` (branch `main`).
-- Installed toolchains: **.NET SDK 8.0.425 only** (no Rust, no Go, no C++/cmake).
-- Stack: C# / .NET 8 / WPF, self-contained single-file; artifacts for `win-x64`, `win-x86`, `win-arm64`.
-- Elevation: `asInvoker`; the app probes driver access and offers one elevated restart only when Npcap
-  restricts the driver. Npcap or WinPcap is the single external prerequisite.
-- **Artifact policy:** build output (`bin/`, `obj/`, `publish/`) and the portable exes
-  (`SelfishNetV2-*.exe`) are git-ignored and must never be committed — each build is ~200 MB,
-  which bloats the repo permanently. Distribute via a GitHub Release instead. Reclaim disk with
-  `tools\clean.cmd`; the already-committed exe blobs can be purged (optional, force-push) with
-  `tools\purge-binaries-from-history.ps1`.
+## 6. Decisions log (why things are the way they are)
+
+| Decision | Reason |
+|---|---|
+| C#/.NET 8/WPF self-contained | The riskiest layer (wpcap P/Invoke) was already proven in C#; WPF delivers the UI without installers |
+| One exe per architecture | A self-contained .NET app embeds an arch-specific runtime; XP→11 in one binary is impossible |
+| OS floor declared as 10.0.14393 | .NET 8 minimum; `Directory.Build.targets` (not `.props` — there `$(TargetFramework)` is still empty and the condition silently fails) + a guard test |
+| WinRT projection excluded from publish | Raising the target platform dragged a 24 MB unused assembly into every bundle |
+| Dual engines | A/B comparison and an instant fallback; Legacy stays a faithful 2007 replica |
+| Healing registry | The prototype healed only currently-ticked devices, orphaning caches |
+| Reactive poison + 2 s cadence | Fixes the observed "device escaped shaping" race |
+| `asInvoker` + access probe | Admin is only needed when Npcap restricts the driver; avoids a UAC prompt otherwise |
+| Binaries never versioned | Each build is ~200 MB; committing them bloats the repo permanently |
+| Spanish + dark defaults, maximized start | User preference |
+| Win7/XP deferred | Documented options in `docs/PENDING.md` (net48 and net40 forks) |
+
+## 7. Defect history and prevention
+
+Full catalogue: `docs/REVAMP_BLUEPRINT.md` §1 (C1–C3 critical, H1–H3 performance, M1–M8 behaviour)
+and `docs/PROTOTYPE_POSTMORTEM.md` (why the prototype failed: escaping poison, orphaned heal,
+teardown races, pcap ABI, hot-path allocations, broadcast fallback, no retry, no engine fallback,
+UI blocking, clock/refill).
+
+Rules adopted (keep them):
+1. Frame builders are parity-tested against golden byte vectors.
+2. Driver-boundary ABIs are asserted in tests and sanity-checked at runtime.
+3. Shutdown is always `breakloop → join → close`; cancellation precedes joining.
+4. No string identity or steady-state allocation in the packet hot path.
+5. Anything that modifies the network needs a registry entry and a heal path.
+6. Failure paths are tested on `LoopbackDriver` — no hardware required.
+7. Promises stay scoped (healing is best-effort; say so).
+
+## 8. Test map (85 tests)
+
+| File | Guards |
+|---|---|
+| `ArpFrameBuilderParityTests` | Byte-for-byte ARP frames (request/poison/self-refresh/inert/restore) + parsing |
+| `PcapAbiTests`, `CompatibilityTests` | 16-byte LLP64 `pcap_pkthdr`, header sanity, declared Win10 1607 floor |
+| `PacketClassifierTests` | Source-MAC flows, VLAN walk, short frames |
+| `DeviceCatalogTests` | Dual index, MAC re-indexing, sorting, spoof-target filtering |
+| `TokenBucketTests` | Unlimited rate, sustained rate, deficit rule, clamp-not-refill |
+| `SpeedFormatterTests` | KByte/s ↔ KBit/s conversion and formatting rules |
+| `EngineIntegrationTests` | Learning, burst shapes, forwarding/rewriting, blocking, caps, exact 35-pair healing, engine swap, adapter-switch healing |
+| `EngineRobustnessTests` | Reactive poison, broadcast healing, untarget heal, close retry, 10 000-frame burst, auto-scan, close-after-stop silence |
+| `ShutdownHammerTests` | 300 start/stop/dispose cycles; engine open/close under load |
+
+## 9. Environment and prerequisites
+
+- Windows 10/11 (target machine). .NET SDK 8 required only to build; the exes are standalone.
+- Npcap (https://npcap.com) preferred, WinPcap fallback. Npcap's "restrict to administrators"
+  install option decides whether elevation is needed.
+- `%AppData%\SelfishNetV2\` holds the only persistent data: `settings.json` (language, theme,
+  units, last adapter, engine) and `known_devices.json` (names, caps, block/spoof flags, last IP
+  per MAC). No logging, no traffic/payload storage.
+
+## 10. Working timeline (compact story, survives the history rewrite)
+
+1. **Reverse engineering** — original 2007 binary and `PcapNet.dll` dissected; mechanics verified
+   (`docs/ORIGINAL_FINDINGS.md` corrects the earlier analysis on five points).
+2. **Prototype** — free-model C#/WinForms app in `prototype/`; proved the concept, failed on the
+   edge cases (postmortem).
+3. **Blueprint** — defect synthesis, stack decision (C#/.NET 8/WPF), dual-engine architecture.
+4. **Rebuild** — Core → Drivers → Engines → Services → WPF shell → tests; first clean build and
+   portable publish.
+5. **Acceptance test on a real LAN** — shaping worked on both engines; a device escaped once →
+   reactive defense, 2 s cadence, healing registry, session-end healing.
+6. **OS certification** — declared Win10 1607 floor + guard test, DWM 1809 fallback, triple-arch
+   publish, WinRT projection excluded, support matrix documented.
+7. **Repository hygiene** — history rewritten to purge ~200 MB of binaries; artifacts untracked;
+   `tools/clean.cmd` added (~1.1 GB reclaimed locally).
+
+## 11. Backlog (see `docs/PENDING.md`)
+
+- **P1** Windows 7 SP1 support: separate `net48` build (medium–large port).
+- **P2** Windows XP SP3 support: separate `net40` fork (large; the preserved 2007 build covers XP today).
+- **P3** Mesh/multi-MAC routers (blueprint M4), configurable auto-scan interval, optional installer,
+  chart export, code signing.

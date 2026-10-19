@@ -41,21 +41,22 @@ single elevated restart only if the driver is restricted.
 | Auto-discovery (60 s background sweep + passive ARP learning) | ✅ |
 | Robust healing (registry-backed, broadcast gratuitous, gateway re-resolve) | ✅ |
 | Reactive ARP defense (Modern engine) | ✅ |
-| Automated tests | ✅ 81/81 green |
+| Automated tests | ✅ 85/85 green |
 
-**Portable build:** run `src/publish.bat` →
-`publish/x64/SelfishNetV2.exe` (~68 MB) and `publish/x86/SelfishNetV2.exe` (~63 MB).
-Each is a single self-contained file — no .NET install needed. Copy either one anywhere.
+**Portable build:** run `src/publish.bat` → one self-contained exe per architecture
+(`SelfishNetV2-x64.exe` ~68 MB, `-x86.exe` ~63 MB, `-arm64.exe` ~65 MB), also copied to the
+project root for convenience. No .NET install needed — copy one anywhere.
 
-> Why two files? A self-contained .NET app embeds its runtime, and the runtime is
-> architecture-specific. One exe cannot cover both 32-bit and 64-bit Windows; the same
-> source builds both. (A single ~5–10 MB framework-dependent exe is possible if the
+> Why one file per architecture? A self-contained .NET app embeds its runtime, and the
+> runtime is architecture-specific, so one exe cannot cover 32-bit, 64-bit and ARM. Same
+> source, three builds. (A single ~5–10 MB framework-dependent exe is possible if the
 > .NET 8 Desktop Runtime is installed — that breaks the zero-dependency goal.)
 
 ## Run
 
 1. Install **Npcap** (https://npcap.com) if not already present — the only external prerequisite.
-2. Double-click `SelfishNetV2.exe` (Windows asks for Administrator — raw packet injection needs it).
+2. Double-click `SelfishNetV2-x64.exe`. It starts **without** elevation; if your Npcap install
+   restricts the driver to administrators, it offers a one-click elevated restart.
 3. Pick the adapter → set caps/block/spoof per device → **Start Shaping**. (A background
    sweep every 60 s also picks up devices that join later; you never have to rescan manually.)
 4. Toggle **Legacy ⇄ Modern** at any time; the app heals ARP tables before switching engines.
@@ -82,23 +83,34 @@ Each is a single self-contained file — no .NET install needed. Copy either one
 
 ```powershell
 dotnet build src/SelfishNetV2.sln -c Release      # build everything
-dotnet test  src/SelfishNetV2.sln -c Release      # 75 tests (no hardware/admin needed)
-src/publish.bat                                    # single-file portable exe
+dotnet test  src/SelfishNetV2.sln -c Release      # 85 tests (no hardware/admin needed)
+src/publish.bat                                    # self-contained exes (x64/x86/arm64)
+tools\clean.cmd                                    # reclaim build output (~1 GB after publishing)
 ```
 
-Requirements: .NET SDK 8, Windows 10/11 x64, Npcap (or WinPcap) for live packet I/O.
+Requirements: .NET SDK 8, Windows 10/11, Npcap (or WinPcap) for live packet I/O.
 
 ## Folder map
 
 | Path | Contents |
 |---|---|
-| `docs/` | Specifications, findings, and the **master plan** → `docs/REVAMP_BLUEPRINT.md` |
-| `reference/original-app/` | Untouched 2007 golden binaries (verification reference) |
-| `reference/redist/` | Era installers the original app depended on |
-| `reference/tools/` | Reverse-engineering PowerShell tools |
+| `AI_ENVIRONMENT_NOTES.md` | **Project context / single source of truth** — read this first |
+| `docs/` | Findings, master plan (`REVAMP_BLUEPRINT.md`), OS support, postmortem, backlog |
+| `GUIDE_EN.txt` / `GUIDE_ES.txt` | Plain-language user guides (English / Spanish) |
+| `SelfishNetV2-*.exe` | Portable deliverables at the root — git-ignored, never committed |
+| `reference/original-app/`, `-xp/` | Untouched 2007 golden binaries (verification reference) |
+| `reference/redist/`, `reference/tools/` | Era installers and reverse-engineering scripts |
 | `prototype/` | Frozen proof-of-concept (reference only — not the final app) |
 | `src/` | The revamp: Core · Drivers · Engines · Services · App (WPF) · Tests |
-| `publish/` | Portable exe output (git-ignored) |
+| `tools/` | `clean.cmd` (reclaim space), history-purge script, artifact policy |
+| `publish/` | Build output (git-ignored) |
+
+## Repository hygiene
+
+Source, docs and reference material are versioned; **build output and the portable exes are
+not** (`bin/`, `obj/`, `publish/`, `SelfishNetV2-*.exe`). Each build is ~200 MB, so committing
+it would bloat the repository permanently — distribute via a GitHub Release if a build must be
+shared. Run `tools\clean.cmd` after publishing sessions; see `tools/README.md`.
 
 ## Architecture in one paragraph
 

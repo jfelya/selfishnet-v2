@@ -209,8 +209,8 @@ publish/                      # single-file .exe output
 
 ### Implementation status — COMPLETE (2026-10-19)
 
-All phases delivered; `src/SelfishNetV2.sln` builds with 0 warnings / 0 errors, **75/75 tests green**,
-portable single-file exe published (~72 MB).
+All phases delivered; `src/SelfishNetV2.sln` builds with 0 warnings / 0 errors, **85/85 tests green**,
+one self-contained exe per architecture (x64 ~68 MB, x86 ~63 MB, arm64 ~65 MB).
 
 | Phase | Delivered |
 |---|---|
@@ -233,7 +233,7 @@ window includes observed (not only forwarded) bytes — both are intentional and
 | Auto-discovery | 60 s background subnet sweep (1 s tick granularity) + always-on passive ARP learning; manual Discover still available. |
 | Crash resistance | Verified with 10 000 × 1514-byte burst test: no crash, ≥95 % forwarded, clean heal afterwards. |
 | UI fixes | Readable DataGrid foreground in dark theme (was system black), two-line column headers (no truncation), single language button, unit-aware chart axes/legend, disabled flags on local/gateway rows. |
-| Packaging | Dual-arch publish (`win-x64` 68 MB / `win-x86` 63 MB); ReadyToRun disabled to cut ≈4 MB (WPF trim is unsupported). |
+| Packaging | Triple-arch publish (`win-x64` 68 MB / `win-x86` 63 MB / `win-arm64` 65 MB); ReadyToRun disabled to cut ≈4 MB (WPF trim is unsupported). Binaries are **not** versioned — see `tools/README.md`. |
 
 Test count: **81/81 green** (added reactive, broadcast-heal, untarget-heal, auto-scan, burst-stress).
 
