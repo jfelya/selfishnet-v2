@@ -16,12 +16,12 @@ shaping), shipped as a **single portable Windows executable**.
 |---|---|
 | Windows 11 (all releases) | ✅ Supported |
 | Windows 10 1607 → 22H2 (all releases) | ✅ Supported (1607 = .NET 8 runtime floor) |
-| Windows 10 x64 / 32-bit / ARM | ✅ `publish/x64` · `publish/x86` · `publish/arm64` |
+| Windows 10/11 x64 or 32-bit | ✅ `publish/x64` · `publish/x86` |
 | Windows 8.1 / 7 SP1 | ❌ Not in the modern build — see `docs/PENDING.md` (P1) |
 | Windows XP SP3 | ❌ Prefer the preserved original build in `reference/original-app-xp/` (`docs/PENDING.md` P2) |
 
 The Windows 10 1607 floor is declared in `src/Directory.Build.targets`, enforced by a guard test,
-and the platform analyzer flags any API newer than it. Details, caveats and the ARM64 note:
+and the platform analyzer flags any API newer than it. Details and caveats:
 `docs/WINDOWS_COMPATIBILITY.md`.
 
 The app starts **without administrator rights** when the Npcap driver allows it, and offers a
@@ -43,18 +43,19 @@ single elevated restart only if the driver is restricted.
 | Reactive ARP defense (Modern engine) | ✅ |
 | Automated tests | ✅ 85/85 green |
 
-**Portable build:** run `src/publish.bat` → one self-contained exe per architecture
-(`SelfishNetV2-x64.exe` ~68 MB, `-x86.exe` ~63 MB, `-arm64.exe` ~65 MB), also copied to the
+**Portable build:** run `src/publish.bat` → two self-contained exes:
+`SelfishNetV2-x64.exe` (~68 MB) and `SelfishNetV2-x86.exe` (~63 MB), also copied to the
 project root for convenience. No .NET install needed — copy one anywhere.
 
-> Why one file per architecture? A self-contained .NET app embeds its runtime, and the
-> runtime is architecture-specific, so one exe cannot cover 32-bit, 64-bit and ARM. Same
-> source, three builds. (A single ~5–10 MB framework-dependent exe is possible if the
+> Why two files? A self-contained .NET app embeds its runtime, and the runtime is
+> architecture-specific, so one exe cannot cover both 32-bit and 64-bit Windows. Same
+> source, two builds. (A single ~5–10 MB framework-dependent exe is possible if the
 > .NET 8 Desktop Runtime is installed — that breaks the zero-dependency goal.)
 
 ## Run
 
 1. Install **Npcap** (https://npcap.com) if not already present — the only external prerequisite.
+   Not sure? Just run the app: it opens normally and shows a **Download Npcap** button.
 2. Double-click `SelfishNetV2-x64.exe`. It starts **without** elevation; if your Npcap install
    restricts the driver to administrators, it offers a one-click elevated restart.
 3. Pick the adapter → set caps/block/spoof per device → **Start Shaping**. (A background
@@ -84,7 +85,7 @@ project root for convenience. No .NET install needed — copy one anywhere.
 ```powershell
 dotnet build src/SelfishNetV2.sln -c Release      # build everything
 dotnet test  src/SelfishNetV2.sln -c Release      # 85 tests (no hardware/admin needed)
-src/publish.bat                                    # self-contained exes (x64/x86/arm64)
+src/publish.bat                                    # self-contained exes (x64 + x86)
 tools\clean.cmd                                    # reclaim build output (~1 GB after publishing)
 ```
 

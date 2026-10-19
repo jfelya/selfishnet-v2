@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Threading;
@@ -60,6 +61,7 @@ public sealed class MainViewModel : ObservableObject
         AboutCommand = new RelayCommand(_ => ShowAbout());
         SwitchEngineCommand = new RelayCommand(async p => await SwitchEngineAsync(p as string), _ => CanUseEngine);
         ToggleLanguageCommand = new RelayCommand(_ => ToggleLanguage());
+        OpenNpcapDownloadCommand = new RelayCommand(_ => OpenNpcapDownload());
 
         LocalizationManager.OnLanguageChanged += ApplyLanguage;
 
@@ -144,6 +146,7 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand AboutCommand { get; }
     public RelayCommand SwitchEngineCommand { get; }
     public RelayCommand ToggleLanguageCommand { get; }
+    public RelayCommand OpenNpcapDownloadCommand { get; }
 
     // ---------------- device edits (apply + persist via orchestrator) ----------------
 
@@ -269,6 +272,16 @@ public sealed class MainViewModel : ObservableObject
         LocalizationManager.SetLanguage(l);   // fires OnLanguageChanged → ApplyLanguage
         _settings.Language = l.ToString();
         _settings.Save();
+    }
+
+    /// <summary>Opens the official Npcap download page (the only external prerequisite).</summary>
+    private static void OpenNpcapDownload()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo("https://npcap.com/#download") { UseShellExecute = true });
+        }
+        catch { /* no browser / blocked: the URL is also shown in the banner tooltip */ }
     }
 
     private void ShowAbout()

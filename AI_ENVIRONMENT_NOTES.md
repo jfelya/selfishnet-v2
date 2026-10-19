@@ -18,7 +18,7 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 **portable Windows desktop app** with a modern UI.
 
 - **Owner:** Fely. **Remote:** `https://github.com/jfelya/selfishnet-v2` (branch `main`).
-- **Stack:** C# / .NET 8 / WPF, self-contained single-file executables (x64, x86, ARM64).
+- **Stack:** C# / .NET 8 / WPF, self-contained single-file executables (x64, x86).
 - **Bilingual:** English (US) and Latin American Spanish (es-419), hot-swappable.
 - **Defaults:** Spanish UI + dark theme, window starts maximized.
 - **Only external prerequisite:** Npcap (or legacy WinPcap). The app itself needs no installer.
@@ -30,7 +30,7 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 | Build | `dotnet build src/SelfishNetV2.sln -c Release` → 0 warnings, 0 errors |
 | Tests | **85/85 green** in ~6 s (no hardware, no admin) |
 | Field test | Real LAN: both engines limited a phone; runtime engine switch worked; healing worked |
-| Artifacts | `SelfishNetV2-x64.exe` 68.5 MB · `-x86.exe` 63.3 MB · `-arm64.exe` 64.9 MB (project root) |
+| Artifacts | `SelfishNetV2-x64.exe` 68.5 MB · `-x86.exe` 63.3 MB (project root) |
 | OS support | Windows 10 1607 → 22H2 and all Windows 11 releases; floor declared and guard-tested |
 | Elevation | Starts unelevated; offers one elevated restart only if Npcap restricts the driver |
 | Repo | Source-only (binaries untracked); history rewritten to drop committed exes |
@@ -40,7 +40,7 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 ```powershell
 dotnet build src/SelfishNetV2.sln -c Release      # build everything
 dotnet test  src/SelfishNetV2.sln -c Release      # 85 tests, no hardware/admin needed
-src\publish.bat                                    # → publish\{x64,x86,arm64}\SelfishNetV2.exe
+src\publish.bat                                    # → publish\{x64,x86}\SelfishNetV2.exe
 tools\clean.cmd                                    # reclaim build output (~1 GB after publishing)
 ```
 
@@ -87,6 +87,8 @@ Packet I/O: IPcapDriver → WpcapDriver (Npcap → WinPcap) | LoopbackDriver (te
 - **Discovery**: passive ARP learning always on + a quiet 60 s background sweep; manual Discover.
 - **Elevation**: `asInvoker` + `DriverAccessProbe`; the only thing that can need admin rights is
   the Npcap driver, and that is an install-time option.
+- **Missing-driver UX**: without Npcap the app still opens normally, shows a warning banner and a
+  **Download Npcap** button that opens `https://npcap.com/#download` (the only prerequisite).
 - **Driver discipline**: one capture per handle, `breakloop → join → close`, `pcap_pkthdr` asserted
   at 16 bytes (LLP64), first-frame sanity check, ABI guard test.
 
@@ -98,7 +100,7 @@ SelfishNet v2/
 ├── README.md                        # human-facing overview, support matrix, hygiene
 ├── GUIDE_EN.txt / GUIDE_ES.txt      # plain-language user guides (user-maintained, do not rewrite)
 ├── VISUAL_DESIGN_SYSTEM.md          # user-provided design-system reference
-├── SelfishNetV2-{x64,x86,arm64}.exe # deliverables at the root — GIT-IGNORED, never commit
+├── SelfishNetV2-{x64,x86}.exe        # deliverables at the root — GIT-IGNORED, never commit
 ├── docs/                            # blueprint, findings, OS support, postmortem, backlog, units, i18n spec
 ├── reference/                       # golden material, never modify
 │   ├── original-app/                #   2007 build (Win7+ variant) + DLLs + npf.sys
@@ -114,8 +116,8 @@ SelfishNet v2/
 │   ├── SelfishNetV2.App/            #   WPF shell: Themes/, Theming/, Controls/, ViewModels/, Views/
 │   ├── SelfishNetV2.Tests/          #   85 tests
 │   ├── Directory.Build.targets      #   OS floor + WinRT projection exclusion
-│   └── publish.bat                  #   3-arch self-contained publish
-├── tools/                           # clean.cmd/ps1, purge-binaries-from-history.ps1, README
+│   └── publish.bat                  #   2-arch self-contained publish (x64 + x86)
+├── tools/                           # clean.cmd/ps1 + README
 └── publish/                         # build output (git-ignored)
 ```
 
@@ -185,8 +187,8 @@ Rules adopted (keep them):
    portable publish.
 5. **Acceptance test on a real LAN** — shaping worked on both engines; a device escaped once →
    reactive defense, 2 s cadence, healing registry, session-end healing.
-6. **OS certification** — declared Win10 1607 floor + guard test, DWM 1809 fallback, triple-arch
-   publish, WinRT projection excluded, support matrix documented.
+6. **OS certification** — declared Win10 1607 floor + guard test, DWM 1809 fallback, dual-arch
+   publish (x64 + x86), WinRT projection excluded, support matrix documented.
 7. **Repository hygiene** — history rewritten to purge ~200 MB of binaries; artifacts untracked;
    `tools/clean.cmd` added (~1.1 GB reclaimed locally).
 

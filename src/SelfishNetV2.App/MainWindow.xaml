@@ -79,8 +79,14 @@
         <!-- ================= driver banner ================= -->
         <Border Grid.Row="1" Background="{DynamicResource WarningBannerBrush}" Padding="14,8"
                 Visibility="{Binding HasDriverProblem, Converter={StaticResource BoolToVis}}">
-            <TextBlock x:Name="TxtDriverBanner" Foreground="{DynamicResource WarningTextBrush}"
-                       TextWrapping="Wrap" ToolTip="{Binding DriverProblem}"/>
+            <DockPanel>
+                <Button x:Name="BtnDownloadNpcap" DockPanel.Dock="Right" Margin="14,0,0,0"
+                        Padding="12,4" VerticalAlignment="Center"
+                        Command="{Binding OpenNpcapDownloadCommand}"/>
+                <TextBlock x:Name="TxtDriverBanner" Foreground="{DynamicResource WarningTextBrush}"
+                           TextWrapping="Wrap" VerticalAlignment="Center"
+                           ToolTip="{Binding DriverProblem}"/>
+            </DockPanel>
         </Border>
 
         <!-- ================= device grid ================= -->

@@ -71,6 +71,8 @@ public partial class MainWindow : Window
         BtnAbout.Content = L("BtnAbout");
 
         TxtDriverBanner.Text = L("MsgDriverNotFound");
+        BtnDownloadNpcap.Content = L("BtnDownloadNpcap");
+        BtnDownloadNpcap.ToolTip = L("BtnDownloadNpcapTooltip");
         TotalChart.Title = L("ChartTotal");
         SelectedChart.Title = L("ChartSelected");
         TotalChart.UnitMode = _vm.Units;

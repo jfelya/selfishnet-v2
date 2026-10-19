@@ -22,20 +22,10 @@ dotnet publish SelfishNetV2.App\SelfishNetV2.App.csproj -c Release -r win-x86 --
   -o "%OUT%\x86"
 if errorlevel 1 goto :fail
 
-echo === Publishing win-arm64 (Windows on ARM) ===
-dotnet publish SelfishNetV2.App\SelfishNetV2.App.csproj -c Release -r win-arm64 --self-contained true ^
-  -p:PublishSingleFile=true ^
-  -p:IncludeNativeLibrariesForSelfExtract=true ^
-  -p:EnableCompressionInSingleFile=true ^
-  -p:DebugType=None -p:DebugSymbols=false ^
-  -o "%OUT%\arm64"
-if errorlevel 1 goto :fail
-
 echo.
 echo Done:
-echo   %OUT%\x64\SelfishNetV2.exe     (Windows 10/11 x64)
-echo   %OUT%\x86\SelfishNetV2.exe     (Windows 10/11 32-bit)
-echo   %OUT%\arm64\SelfishNetV2.exe   (Windows 10/11 on ARM - needs an ARM64 packet driver)
+echo   %OUT%\x64\SelfishNetV2.exe   (Windows 10/11 64-bit)
+echo   %OUT%\x86\SelfishNetV2.exe   (Windows 10/11 32-bit)
 exit /b 0
 
 :fail
