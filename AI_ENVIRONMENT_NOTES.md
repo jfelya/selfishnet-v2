@@ -33,7 +33,7 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 | Artifacts | `SelfishNetV2-x64.exe` 68.5 MB · `-x86.exe` 63.3 MB (project root) |
 | OS support | Windows 10 1607 → 22H2 and all Windows 11 releases; floor declared and guard-tested |
 | Elevation | Starts unelevated; offers one elevated restart only if Npcap restricts the driver |
-| Repo | Source-only (binaries untracked); history rewritten to drop committed exes |
+| Repo | Source + docs + the two portable exes at the root (versioned) |
 
 ## 3. How to build, test, publish, clean
 
@@ -100,7 +100,7 @@ SelfishNet v2/
 ├── README.md                        # human-facing overview, support matrix, hygiene
 ├── GUIDE_EN.txt / GUIDE_ES.txt      # plain-language user guides (user-maintained, do not rewrite)
 ├── VISUAL_DESIGN_SYSTEM.md          # user-provided design-system reference
-├── SelfishNetV2-{x64,x86}.exe        # deliverables at the root — GIT-IGNORED, never commit
+├── SelfishNetV2-{x64,x86}.exe        # deliverables at the root — versioned (clone-and-run)
 ├── docs/                            # blueprint, findings, OS support, postmortem, backlog, units, i18n spec
 ├── reference/                       # golden material, never modify
 │   ├── original-app/                #   2007 build (Win7+ variant) + DLLs + npf.sys
@@ -133,7 +133,7 @@ SelfishNet v2/
 | Healing registry | The prototype healed only currently-ticked devices, orphaning caches |
 | Reactive poison + 2 s cadence | Fixes the observed "device escaped shaping" race |
 | `asInvoker` + access probe | Admin is only needed when Npcap restricts the driver; avoids a UAC prompt otherwise |
-| Binaries never versioned | Each build is ~200 MB; committing them bloats the repo permanently |
+| Two portable exes versioned at the root | Clone-and-run convenience; a deliberate ~130 MB-per-rebuild trade-off (build output stays ignored) |
 | Spanish + dark defaults, maximized start | User preference |
 | Win7/XP deferred | Documented options in `docs/PENDING.md` (net48 and net40 forks) |
 
@@ -189,8 +189,11 @@ Rules adopted (keep them):
    reactive defense, 2 s cadence, healing registry, session-end healing.
 6. **OS certification** — declared Win10 1607 floor + guard test, DWM 1809 fallback, dual-arch
    publish (x64 + x86), WinRT projection excluded, support matrix documented.
-7. **Repository hygiene** — history rewritten to purge ~200 MB of binaries; artifacts untracked;
+7. **Repository hygiene** — history rewritten to purge ~200 MB of binaries; build output ignored;
    `tools/clean.cmd` added (~1.1 GB reclaimed locally).
+8. **Clone-and-run** — the two portable exes (x64/x86) were re-added to the repository root as
+   versioned deliverables at the user's request; ARM support was dropped. The app now shows a
+   "Download Npcap" button when the only prerequisite is missing.
 
 ## 11. Backlog (see `docs/PENDING.md`)
 

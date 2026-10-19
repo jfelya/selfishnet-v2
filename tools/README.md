@@ -16,8 +16,8 @@ No Administrator rights are needed — it only touches files inside the project 
 
 ## Artifact policy
 
-- **Source, docs and reference material are versioned.**
+- **Source, docs, reference material and the two portable exes at the root are versioned**, so a
+  fresh clone is ready to run.
 - **Build output is never versioned** (`bin/`, `obj/`, `publish/` are ignored).
-- **Portable exes are deliverables, not source.** They live in the project root for convenience and
-  are ignored by git. To share a build, attach the exe to a GitHub Release instead of committing it
-  — this keeps clones small and every commit light.
+- Rebuilding the exes means committing new binaries (~130 MB per version). That is a deliberate
+  trade-off for clone-and-run convenience.

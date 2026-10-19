@@ -98,7 +98,7 @@ Requirements: .NET SDK 8, Windows 10/11, Npcap (or WinPcap) for live packet I/O.
 | `AI_ENVIRONMENT_NOTES.md` | **Project context / single source of truth** — read this first |
 | `docs/` | Findings, master plan (`REVAMP_BLUEPRINT.md`), OS support, postmortem, backlog |
 | `GUIDE_EN.txt` / `GUIDE_ES.txt` | Plain-language user guides (English / Spanish) |
-| `SelfishNetV2-*.exe` | Portable deliverables at the root — git-ignored, never committed |
+| `SelfishNetV2-*.exe` | Portable executables at the root — versioned, clone-and-run |
 | `reference/original-app/`, `-xp/` | Untouched 2007 golden binaries (verification reference) |
 | `reference/redist/`, `reference/tools/` | Era installers and reverse-engineering scripts |
 | `prototype/` | Frozen proof-of-concept (reference only — not the final app) |
@@ -108,10 +108,10 @@ Requirements: .NET SDK 8, Windows 10/11, Npcap (or WinPcap) for live packet I/O.
 
 ## Repository hygiene
 
-Source, docs and reference material are versioned; **build output and the portable exes are
-not** (`bin/`, `obj/`, `publish/`, `SelfishNetV2-*.exe`). Each build is ~200 MB, so committing
-it would bloat the repository permanently — distribute via a GitHub Release if a build must be
-shared. Run `tools\clean.cmd` after publishing sessions; see `tools/README.md`.
+Source, docs, reference material and the two **portable executables at the root**
+(`SelfishNetV2-x64.exe`, `SelfishNetV2-x86.exe`) are versioned, so a fresh clone is ready to run.
+Build output (`bin/`, `obj/`, `publish/`) is ignored; run `tools\clean.cmd` after publishing
+sessions. See `tools/README.md`.
 
 ## Architecture in one paragraph
 

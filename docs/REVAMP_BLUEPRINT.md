@@ -233,7 +233,7 @@ window includes observed (not only forwarded) bytes — both are intentional and
 | Auto-discovery | 60 s background subnet sweep (1 s tick granularity) + always-on passive ARP learning; manual Discover still available. |
 | Crash resistance | Verified with 10 000 × 1514-byte burst test: no crash, ≥95 % forwarded, clean heal afterwards. |
 | UI fixes | Readable DataGrid foreground in dark theme (was system black), two-line column headers (no truncation), single language button, unit-aware chart axes/legend, disabled flags on local/gateway rows. |
-| Packaging | Dual-arch publish (`win-x64` 68 MB / `win-x86` 63 MB); ReadyToRun disabled to cut ≈4 MB (WPF trim is unsupported). Binaries are **not** versioned — see `tools/README.md`. |
+| Packaging | Dual-arch publish (`win-x64` 68 MB / `win-x86` 63 MB); ReadyToRun disabled to cut ≈4 MB (WPF trim is unsupported). The two portable exes are versioned at the project root so a clone is ready to run. |
 
 Test count: **81/81 green** (added reactive, broadcast-heal, untarget-heal, auto-scan, burst-stress).
 
