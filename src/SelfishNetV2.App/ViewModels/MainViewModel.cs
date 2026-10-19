@@ -31,8 +31,6 @@ public sealed class MainViewModel : ObservableObject
     private string _busyText = "";
     private bool _isEngineLegacy;
     private bool _isEngineModern = true;
-    private bool _isEnglish;
-    private bool _isSpanish;
     private DeviceViewModel? _selectedDevice;
 
     public MainViewModel(EngineOrchestrator? orch, AdapterService adapters, SettingsStore settings, string? driverProblem)
@@ -47,8 +45,6 @@ public sealed class MainViewModel : ObservableObject
         Theme = _settings.Theme == "Light" ? AppTheme.Light : AppTheme.Dark;
         LocalizationManager.SetLanguage(_settings.Language == "English"
             ? LocalizationManager.Language.English : LocalizationManager.Language.SpanishLA);
-        _isEnglish = LocalizationManager.CurrentLanguage == LocalizationManager.Language.English;
-        _isSpanish = !_isEnglish;
 
         Devices = new ObservableCollection<DeviceViewModel>();
 
@@ -59,7 +55,7 @@ public sealed class MainViewModel : ObservableObject
         ToggleThemeCommand = new RelayCommand(_ => ToggleTheme());
         AboutCommand = new RelayCommand(_ => ShowAbout());
         SwitchEngineCommand = new RelayCommand(async p => await SwitchEngineAsync(p as string), _ => CanUseEngine);
-        SetLanguageCommand = new RelayCommand(p => SetLanguage(p as string));
+        ToggleLanguageCommand = new RelayCommand(_ => ToggleLanguage());
 
         LocalizationManager.OnLanguageChanged += ApplyLanguage;
 
@@ -109,8 +105,6 @@ public sealed class MainViewModel : ObservableObject
     public string BusyText { get => _busyText; private set => Set(ref _busyText, value); }
     public bool IsEngineLegacy { get => _isEngineLegacy; private set => Set(ref _isEngineLegacy, value); }
     public bool IsEngineModern { get => _isEngineModern; private set => Set(ref _isEngineModern, value); }
-    public bool IsEnglish { get => _isEnglish; private set => Set(ref _isEnglish, value); }
-    public bool IsSpanish { get => _isSpanish; private set => Set(ref _isSpanish, value); }
 
     public DeviceViewModel? SelectedDevice
     {
@@ -142,7 +136,7 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand ToggleThemeCommand { get; }
     public RelayCommand AboutCommand { get; }
     public RelayCommand SwitchEngineCommand { get; }
-    public RelayCommand SetLanguageCommand { get; }
+    public RelayCommand ToggleLanguageCommand { get; }
 
     // ---------------- device edits (apply + persist via orchestrator) ----------------
 
@@ -260,14 +254,14 @@ public sealed class MainViewModel : ObservableObject
         ThemeChanged?.Invoke();
     }
 
-    private void SetLanguage(string? lang)
+    private void ToggleLanguage()
     {
-        var l = lang == "English" ? LocalizationManager.Language.English : LocalizationManager.Language.SpanishLA;
-        LocalizationManager.SetLanguage(l);
+        var l = LocalizationManager.CurrentLanguage == LocalizationManager.Language.English
+            ? LocalizationManager.Language.SpanishLA
+            : LocalizationManager.Language.English;
+        LocalizationManager.SetLanguage(l);   // fires OnLanguageChanged → ApplyLanguage
         _settings.Language = l.ToString();
         _settings.Save();
-        IsEnglish = l == LocalizationManager.Language.English;
-        IsSpanish = !IsEnglish;
     }
 
     private void ShowAbout() =>
@@ -366,11 +360,14 @@ public sealed class MainViewModel : ObservableObject
     public string UnitsButtonText => LocalizationManager.Get("BtnUnits", SpeedFormatter.CapUnit(Units));
     public string ThemeButtonText => LocalizationManager.Get("BtnTheme",
         Theme == AppTheme.Dark ? LocalizationManager.Get("ThemeDark") : LocalizationManager.Get("ThemeLight"));
+    public string LanguageButtonText => LocalizationManager.Get("BtnLanguage",
+        LocalizationManager.CurrentLanguage == LocalizationManager.Language.English ? "English" : "Español");
 
     private void ApplyLanguage()
     {
         OnPropertyChanged(nameof(UnitsButtonText));
         OnPropertyChanged(nameof(ThemeButtonText));
+        OnPropertyChanged(nameof(LanguageButtonText));
         OnPropertyChanged(nameof(ShapingTooltip));
         RefreshState();
         foreach (var d in Devices) { d.RefreshIdentity(); d.RefreshSpeeds(); d.RefreshCaps(); }

@@ -29,6 +29,19 @@ public sealed class BandwidthChartControl : FrameworkElement
     private int _count;
     private double _scroll;          // 1 → 0 between samples
     private bool _renderingHooked;
+    private UnitMode _unitMode = UnitMode.Bytes;
+
+    /// <summary>Unit system for axis + legend labels (follows the app's Units toggle).</summary>
+    public UnitMode UnitMode
+    {
+        get => _unitMode;
+        set
+        {
+            if (_unitMode == value) return;
+            _unitMode = value;
+            InvalidateVisual();
+        }
+    }
 
     private static readonly Typeface Face = new("Segoe UI");
 
@@ -113,7 +126,7 @@ public sealed class BandwidthChartControl : FrameworkElement
             double y = padT + ch - ch * i / 4.0;
             dc.DrawLine(gridPen, new Point(padL, y), new Point(padL + cw, y));
             if (i > 0)
-                DrawText(dc, SpeedFormatter.FormatBytes(scaleMax * i / 4.0, UnitMode.Bytes),
+                DrawText(dc, SpeedFormatter.FormatBytes(scaleMax * i / 4.0, _unitMode),
                     padL + 2, y - 14, 9, textDim, FontWeights.Normal);
         }
 
@@ -121,7 +134,7 @@ public sealed class BandwidthChartControl : FrameworkElement
         double lastDown = _count > 0 ? _down[_count - 1] : 0;
         double lastUp = _count > 0 ? _up[_count - 1] : 0;
         FormattedText legend = MakeText(
-            $"\u2193 {SpeedFormatter.FormatBytes(lastDown, UnitMode.Bytes)}    \u2191 {SpeedFormatter.FormatBytes(lastUp, UnitMode.Bytes)}",
+            $"\u2193 {SpeedFormatter.FormatBytes(lastDown, _unitMode)}    \u2191 {SpeedFormatter.FormatBytes(lastUp, _unitMode)}",
             11, textDim, FontWeights.SemiBold);
         dc.DrawText(legend, new Point(w - legend.Width - 4, 3));
 

@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using SelfishNetV2.App.Theming;
 using SelfishNetV2.App.ViewModels;
@@ -65,21 +66,24 @@ public partial class MainWindow : Window
 
         BtnUnits.ToolTip = L("BtnUnitsTooltip");
         BtnTheme.ToolTip = L("BtnThemeTooltip");
-        LblLanguage.Text = L("MenuLanguage");
+        BtnLanguage.ToolTip = L("BtnLanguageTooltip");
         BtnAbout.Content = L("BtnAbout");
 
         TxtDriverBanner.Text = L("MsgDriverNotFound");
         TotalChart.Title = L("ChartTotal");
         SelectedChart.Title = L("ChartSelected");
+        TotalChart.UnitMode = _vm.Units;
+        SelectedChart.UnitMode = _vm.Units;
 
         string unit = SpeedFormatter.CapUnit(_vm.Units);
+        string capTip = string.Format(L("CapCellTooltip"), unit);
         ColName.Header = Header(L("ColPCName"), L("NameColumnTooltip"));
         ColIp.Header = L("ColPCIP");
         ColMac.Header = L("ColPCMac");
-        ColDown.Header = $"{L("ColDownload")} ({unit})";
-        ColUp.Header = $"{L("ColUpload")} ({unit})";
-        ColDownCap.Header = Header($"{L("ColDownCap")} ({unit})", string.Format(L("CapCellTooltip"), unit));
-        ColUpCap.Header = Header($"{L("ColUpCap")} ({unit})", string.Format(L("CapCellTooltip"), unit));
+        ColDown.Header = Header2(L("ColDownload"), $"({unit})", null);
+        ColUp.Header = Header2(L("ColUpload"), $"({unit})", null);
+        ColDownCap.Header = Header2(L("ColDownCap"), $"({unit})", capTip);
+        ColUpCap.Header = Header2(L("ColUpCap"), $"({unit})", capTip);
         ColBlock.Header = Header(L("ColBlock"), L("BlockColumnTooltip"));
         ColSpoof.Header = Header(L("ColSpoof"), L("SpoofColumnTooltip"));
     }
@@ -87,6 +91,17 @@ public partial class MainWindow : Window
     /// <summary>Header content that carries a tooltip (DataGridColumn has no HeaderToolTip).</summary>
     private static TextBlock Header(string text, string tooltip) =>
         new() { Text = text, ToolTip = tooltip };
+
+    /// <summary>Two-line header ("Download" / "(KByte/s)") — avoids truncation in narrow columns.</summary>
+    private static TextBlock Header2(string first, string second, string? tooltip)
+    {
+        var tb = new TextBlock();
+        tb.Inlines.Add(new Run(first));
+        tb.Inlines.Add(new LineBreak());
+        tb.Inlines.Add(new Run(second));
+        if (tooltip != null) tb.ToolTip = tooltip;
+        return tb;
+    }
 
     // ---------------- VM event plumbing ----------------
 

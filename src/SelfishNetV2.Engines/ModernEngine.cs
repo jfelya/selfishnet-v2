@@ -13,7 +13,7 @@ namespace SelfishNetV2.Engines;
 ///     three frames, including the router-MAC self-refresh, are sent identically)
 /// Zero-allocation parsing and numeric-key lookups are inherited from the base.
 /// </summary>
-public sealed class ModernEngine : EngineSessionBase
+public class ModernEngine : EngineSessionBase   // unsealed: tests subclass to tune intervals
 {
     public ModernEngine(DeviceCatalog catalog, IPcapDriver driver) : base(catalog, driver) { }
 
@@ -21,6 +21,14 @@ public sealed class ModernEngine : EngineSessionBase
 
     protected override string IpFilter => "ip or (vlan and ip)";
     protected override bool SendInertSelfFrame => false;
+
+    /// <summary>2 s re-poison (original: 5 s) — shrinks the window in which a device
+    /// could keep the true router MAC after re-ARPing.</summary>
+    protected override int SpoofIntervalMs => 2000;
+
+    /// <summary>Answer ARP races instantly (victim asks for the gateway / router answers
+    /// the victim / victim announces itself) instead of waiting for the next round.</summary>
+    protected override bool ReactivePoison => true;
 
     protected override PacketFlow Classify(ReadOnlySpan<byte> frame, in ForwardingContext ctx, out PacketMatch match) =>
         PacketClassifier.ClassifyAuto(frame, ctx, out match);

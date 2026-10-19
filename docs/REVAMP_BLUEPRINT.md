@@ -223,3 +223,16 @@ portable single-file exe published (~72 MB).
 
 Known deliberate deviations (documented): Modern engine omits the inert 4th spoof frame; Legacy cap
 window includes observed (not only forwarded) bytes — both are intentional and covered by tests.
+
+### Post-acceptance hardening (2026-10-19, after first real-network test)
+
+| Area | Change |
+|---|---|
+| Poison robustness | Modern: 2 s re-poison (Legacy keeps 5 s), double initial burst, **reactive ARP defense** (victim ARPs for gateway / gateway answers victim / victim announces itself → instant poison). Legacy stays a faithful 2007 replica (reactive off). |
+| Healing | Registry `_poisoned` (ip→mac) independent of the Target flag; heal-on-untarget; heal-before-evict; heal-before-adapter-switch; gateway MAC re-resolved before healing (retry kept on failure); 35 unicast pairs **+ 3+3 broadcast gratuitous announcements** per device; send retry. |
+| Auto-discovery | 60 s background subnet sweep (1 s tick granularity) + always-on passive ARP learning; manual Discover still available. |
+| Crash resistance | Verified with 10 000 × 1514-byte burst test: no crash, ≥95 % forwarded, clean heal afterwards. |
+| UI fixes | Readable DataGrid foreground in dark theme (was system black), two-line column headers (no truncation), single language button, unit-aware chart axes/legend, disabled flags on local/gateway rows. |
+| Packaging | Dual-arch publish (`win-x64` 68 MB / `win-x86` 63 MB); ReadyToRun disabled to cut ≈4 MB (WPF trim is unsupported). |
+
+Test count: **81/81 green** (added reactive, broadcast-heal, untarget-heal, auto-scan, burst-stress).

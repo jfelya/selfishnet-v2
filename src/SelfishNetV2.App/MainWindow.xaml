@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:SelfishNetV2.App.Controls"
         Title="SelfishNet v2"
-        Width="1180" Height="740" MinWidth="980" MinHeight="620"
+        Width="1280" Height="780" MinWidth="1120" MinHeight="640"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BackgroundBrush}"
         Foreground="{DynamicResource TextBrush}"
@@ -67,14 +67,8 @@
                             Content="{Binding UnitsButtonText}" Margin="0,0,8,0"/>
                     <Button x:Name="BtnTheme" Command="{Binding ToggleThemeCommand}"
                             Content="{Binding ThemeButtonText}" Margin="0,0,20,0"/>
-                    <TextBlock x:Name="LblLanguage" VerticalAlignment="Center"
-                               Foreground="{DynamicResource TextDimBrush}" Margin="0,0,8,0"/>
-                    <ToggleButton x:Name="TglEn" Content="EN" Style="{StaticResource SegmentedToggle}"
-                                  IsChecked="{Binding IsEnglish, Mode=OneWay}"
-                                  Command="{Binding SetLanguageCommand}" CommandParameter="English" Margin="0,0,4,0"/>
-                    <ToggleButton x:Name="TglEs" Content="ES" Style="{StaticResource SegmentedToggle}"
-                                  IsChecked="{Binding IsSpanish, Mode=OneWay}"
-                                  Command="{Binding SetLanguageCommand}" CommandParameter="SpanishLA" Margin="0,0,20,0"/>
+                    <Button x:Name="BtnLanguage" Command="{Binding ToggleLanguageCommand}"
+                            Content="{Binding LanguageButtonText}" Margin="0,0,20,0"/>
                     <Button x:Name="BtnAbout" Command="{Binding AboutCommand}"/>
                 </StackPanel>
             </DockPanel>
@@ -110,7 +104,7 @@
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn x:Name="ColIp" Width="118" CanUserSort="False" IsReadOnly="True">
+                    <DataGridTemplateColumn x:Name="ColIp" Width="108" CanUserSort="False" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding IpText}" FontFamily="Consolas"/>
@@ -118,7 +112,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn x:Name="ColMac" Width="150" CanUserSort="False" IsReadOnly="True">
+                    <DataGridTemplateColumn x:Name="ColMac" Width="148" CanUserSort="False" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding MacText}" FontFamily="Consolas"
@@ -127,7 +121,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn x:Name="ColDown" Width="116" CanUserSort="False" IsReadOnly="True">
+                    <DataGridTemplateColumn x:Name="ColDown" Width="138" CanUserSort="False" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding DownText}" Foreground="{DynamicResource ChartDownBrush}"
@@ -136,7 +130,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn x:Name="ColUp" Width="116" CanUserSort="False" IsReadOnly="True">
+                    <DataGridTemplateColumn x:Name="ColUp" Width="138" CanUserSort="False" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding UpText}" Foreground="{DynamicResource ChartUpBrush}"
@@ -145,7 +139,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn x:Name="ColDownCap" Width="104" CanUserSort="False">
+                    <DataGridTemplateColumn x:Name="ColDownCap" Width="126" CanUserSort="False">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding CapDownText}" HorizontalAlignment="Center"/>
@@ -159,7 +153,7 @@
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn x:Name="ColUpCap" Width="104" CanUserSort="False">
+                    <DataGridTemplateColumn x:Name="ColUpCap" Width="126" CanUserSort="False">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding CapUpText}" HorizontalAlignment="Center"/>
@@ -173,7 +167,7 @@
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn x:Name="ColBlock" Width="66" CanUserSort="False">
+                    <DataGridTemplateColumn x:Name="ColBlock" Width="76" CanUserSort="False">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <CheckBox IsChecked="{Binding Blocked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -182,7 +176,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn x:Name="ColSpoof" Width="66" CanUserSort="False">
+                    <DataGridTemplateColumn x:Name="ColSpoof" Width="94" CanUserSort="False">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <CheckBox IsChecked="{Binding Targeted, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"

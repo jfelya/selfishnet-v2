@@ -22,6 +22,9 @@ public sealed class LegacyEngine : EngineSessionBase
     protected override string IpFilter => "ip";
     protected override bool SendInertSelfFrame => true;
 
+    // Spec-locked: original 5 s cadence, no reactive replies. Robust healing is still
+    // shared with the Modern engine (safety behavior, not wire-protocol behavior).
+
     protected override PacketFlow Classify(ReadOnlySpan<byte> frame, in ForwardingContext ctx, out PacketMatch match) =>
         PacketClassifier.ClassifyFixed(frame, ctx, out match);
 

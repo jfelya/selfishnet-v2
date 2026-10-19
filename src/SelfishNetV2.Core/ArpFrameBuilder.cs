@@ -72,6 +72,13 @@ public static class ArpFrameBuilder
     public static void BuildRestore(Span<byte> frame, ulong realMac, uint realIp, ulong targetMac, uint targetIp) =>
         Build(frame, targetMac, realMac, realMac, realIp, targetMac, targetIp, OpcodeReply);
 
+    /// <summary>Gratuitous broadcast announcement: "senderIp is at senderMac" to the whole
+    /// LAN. Used during healing so every cache holder is corrected, not just the unicast
+    /// peers we know about.</summary>
+    public static void BuildGratuitousBroadcast(Span<byte> frame, ulong senderMac, uint senderIp) =>
+        Build(frame, NetKeys.BroadcastMac, senderMac, senderMac, senderIp,
+              NetKeys.BroadcastMac, senderIp, OpcodeReply);
+
     private static void WriteMac(ulong mac, Span<byte> dst, int offset)
     {
         dst[offset] = (byte)(mac >> 40);

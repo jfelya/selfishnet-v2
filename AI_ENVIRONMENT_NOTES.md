@@ -7,10 +7,13 @@
   *Modern* engine, switchable at runtime), a modern dark/light UI with live bandwidth charts, and
   bilingual support (English US / Latin American Spanish, hot-swappable).
 - **Author/Owner:** Fely
-- **Current phase (2026-10-19): IMPLEMENTATION COMPLETE.** All layers implemented in `src/`:
-  Core → Drivers → Engines (Legacy + Modern) → Services → WPF App → Tests. Build is clean
-  (0 warnings / 0 errors), **75/75 tests pass**, portable single-file `publish/SelfishNetV2.exe`
-  (~72 MB) verified. Remaining work = user acceptance testing on real hardware / polish feedback.
+- **Current phase (2026-10-19): FIELD-TESTED, HARDENED.** All layers implemented; build clean,
+  **81/81 tests pass**, dual-arch portable exes (`publish/x64` ~68 MB, `publish/x86` ~63 MB).
+  First real-network test passed (both engines limited a phone, engine switching worked).
+  Post-acceptance changes: reactive ARP defense + 2 s re-poison (Modern), registry-backed
+  healing with broadcast gratuitous frames, heal-on-untarget/evict/adapter-switch, 60 s
+  auto-discovery, dark-theme readability fix, single language button, unit-aware charts,
+  x64+x86 publishing. Remaining polish comes from user feedback rounds.
 - **Git:** repo initialized, remote `https://github.com/jfelya/selfishnet-v2`.
 - **UI verification method (no admin/UAC needed):** a temporary console harness referencing the App
   assembly, calling `new App().InitializeComponent()`, constructing `MainWindow`, then
@@ -63,7 +66,7 @@
 ```
 SelfishNet v2/
 ├── AI_ENVIRONMENT_NOTES.md      # This file — session memory for AI agents
-├── README.md                    # Human-facing project index
+├── README.md                    # Human-facing project index (status, run, robustness)
 ├── docs/                        # All specifications & findings
 │   ├── ARCHITECTURE_ANALYSIS.md    # Original decompilation report (see ORIGINAL_FINDINGS for corrections)
 │   ├── ORIGINAL_FINDINGS.md        # Verified corrections from IL disassembly (authoritative)
