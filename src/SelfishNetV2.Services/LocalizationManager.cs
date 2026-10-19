@@ -46,6 +46,8 @@ public static class LocalizationManager
                                "Cambiar entre tema oscuro y claro"),
         ["ThemeDark"] = ("Dark", "Oscuro"),
         ["ThemeLight"] = ("Light", "Claro"),
+        ["AboutEnv"] = ("\n\nSystem: {0}\nRuntime: {1}\nEngine: {2}",
+                        "\n\nSistema: {0}\nEntorno: {1}\nMotor: {2}"),
         ["BtnLanguage"] = ("Language: {0}", "Idioma: {0}"),
         ["BtnLanguageTooltip"] = ("Switch between English and Spanish (applies instantly, no restart)",
                                   "Cambiar entre inglés y español (se aplica al instante, sin reiniciar)"),

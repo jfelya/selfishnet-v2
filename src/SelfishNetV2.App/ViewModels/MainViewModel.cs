@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Threading;
 using SelfishNetV2.Core;
@@ -270,9 +271,17 @@ public sealed class MainViewModel : ObservableObject
         _settings.Save();
     }
 
-    private void ShowAbout() =>
-        MessageRequested?.Invoke(LocalizationManager.Get("AboutText"),
+    private void ShowAbout()
+    {
+        // Environment details make support easy and confirm that the OS is
+        // detected as Windows 10/11 (requires the manifest's supportedOS entry).
+        string system = $"{RuntimeInformation.OSDescription.Trim()} ({RuntimeInformation.ProcessArchitecture})";
+        string runtime = RuntimeInformation.FrameworkDescription.Trim();
+        string engine = EngineBadge.Length > 0 ? EngineBadge : "-";
+        string env = LocalizationManager.Get("AboutEnv", system, runtime, engine);
+        MessageRequested?.Invoke(LocalizationManager.Get("AboutText") + env,
             LocalizationManager.Get("BtnAbout"), false);
+    }
 
     // ---------------- engine event handling ----------------
 

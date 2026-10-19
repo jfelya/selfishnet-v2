@@ -2,15 +2,72 @@
 
 ## Current build — support matrix
 
-| OS | Status | How |
-|---|---|---|
-| Windows 11 (x64) | ✅ Supported | `publish/x64/SelfishNetV2.exe` |
-| Windows 10 1607+ (x64) | ✅ Supported | `publish/x64/SelfishNetV2.exe` |
-| Windows 10 32-bit (x86) | ✅ Supported | `publish/x86/SelfishNetV2.exe` |
-| Windows 8.1 / 8 / 7 SP1 | ❌ Not supported by the modern build | See options below |
-| Windows Vista / XP SP3 | ❌ Not supported by the modern build | Original 2007 build preserved in `reference/original-app-xp/` |
+### Windows 10 (all servicing releases)
 
-The x86 executable also runs on 64-bit Windows (WOW64), but there is no reason to use it there.
+| Release | Build | Status |
+|---|---|---|
+| 1507 (RTM) | 10240 | ❌ Below the .NET 8 runtime floor (and long EOL) |
+| 1511 | 10586 | ❌ Below the .NET 8 runtime floor (and long EOL) |
+| **1607 (Anniversary)** | **14393** | ✅ **Minimum supported** — the declared floor |
+| 1703 / 1709 / 1803 | 15063 / 16299 / 17134 | ✅ Supported |
+| 1809 | 17763 | ✅ Supported (dark title bar via the older DWM attribute) |
+| 1903 / 1909 | 18362 / 18363 | ✅ Supported |
+| 2004 / 20H2 / 21H1 / 21H2 / 22H2 | 19041+ | ✅ Supported (final Windows 10 line) |
+
+### Windows 11 (all releases)
+
+| Release | Status |
+|---|---|
+| 21H2, 22H2, 23H2, 24H2 and later | ✅ Supported |
+
+### Architectures
+
+| Target | Artifact | Notes |
+|---|---|---|
+| Windows 10/11 x64 | `publish/x64/SelfishNetV2.exe` | Primary build |
+| Windows 10/11 32-bit | `publish/x86/SelfishNetV2.exe` | Also runs on x64 via WOW64 |
+| Windows 10/11 on ARM | `publish/arm64/SelfishNetV2.exe` | Native ARM64; requires an ARM64-capable packet driver (Npcap ARM64) |
+
+### Out of scope for the modern build
+
+| OS | Status |
+|---|---|
+| Windows 8.1 / 8 / 7 SP1 | ❌ Not supported by the .NET 8 build — see `PENDING.md` (P1) |
+| Windows Vista / XP SP3 | ❌ Not supported — the original 2007 build is preserved in `reference/original-app-xp/` — see `PENDING.md` (P2) |
+
+## How the Windows 10/11 floor is declared and enforced
+
+- `src/Directory.Build.targets` sets, for every OS-specific project:
+  - `SupportedOSPlatformVersion = 10.0.14393.0` (Windows 10 1607) — the runtime floor.
+  - `TargetPlatformVersion = 10.0.19041.0` — the newest SDK surface we compile against,
+    deliberately above the floor so the platform analyzer (CA1416) flags any API that would
+    not exist on 1607.
+- The declaration is emitted as an assembly attribute and **guarded by a unit test**
+  (`CompatibilityTests.Build_Declares_Windows10_1607_As_MinimumSupportedOS`), so a future
+  project or build change that silently drops the floor fails the test suite.
+- `app.manifest` declares the Windows 10/11 `supportedOS` GUID, so Windows reports the true
+  version (visible in *About*: system, runtime and architecture).
+
+## Verified compatibility measures
+
+| Concern | Measure |
+|---|---|
+| DPI scaling | Manifest sets `PerMonitorV2` with the older `true/pm` fallback, covering Win10 1607–1703 and every later release |
+| Dark title bar | DWM attribute 20 (1903+/11) with automatic fallback to attribute 19 (1809); below 1809 the standard title bar is kept — nothing breaks |
+| OS detection | Win10/11 `supportedOS` GUID in the manifest; the About dialog shows the detected version |
+| Future API drift | Floor declared + analyzer active + guard test |
+| Architecture differences | `pcap_pkthdr` is asserted at 16 bytes (identical layout on x86/x64/ARM64) and covered by a test; all pointer arithmetic uses `IntPtr.Size` |
+| Bundle bloat from the platform declaration | The unused WinRT projection (`Microsoft.Windows.SDK.NET.dll`, ~24 MB) is excluded from publish; startup is verified by launching the published exe |
+| Startup on a real machine | The published x64 build was launched and confirmed stable (no crash, clean exit) |
+
+## Known platform caveats
+
+- **Windows 10 in S mode** cannot run unsigned desktop applications; the machine must leave S mode.
+- **ARM64**: the app itself is native; packet capture additionally needs an ARM64-capable Npcap
+  driver. Without it the app starts and reports the missing driver instead of failing.
+- **Windows 10 1507/1511** are below the .NET 8 floor; they have been out of support for years.
+- Groups of settings/device data are stored in `%AppData%\SelfishNetV2\` — per-user, so no
+  compatibility difference between Windows editions.
 
 ## Why one binary cannot cover Windows XP → 11
 

@@ -14,9 +14,15 @@ shaping), shipped as a **single portable Windows executable**.
 
 | OS | Status |
 |---|---|
-| Windows 11 / 10 (1607+), x64 or x86 | Fully supported — `publish/x64` or `publish/x86` |
-| Windows 8.1 / 7 SP1 | Not supported by the .NET 8 build (options: `docs/WINDOWS_COMPATIBILITY.md`) |
-| Windows XP SP3 | Use the preserved original build in `reference/original-app-xp/` |
+| Windows 11 (all releases) | ✅ Supported |
+| Windows 10 1607 → 22H2 (all releases) | ✅ Supported (1607 = .NET 8 runtime floor) |
+| Windows 10 x64 / 32-bit / ARM | ✅ `publish/x64` · `publish/x86` · `publish/arm64` |
+| Windows 8.1 / 7 SP1 | ❌ Not in the modern build — see `docs/PENDING.md` (P1) |
+| Windows XP SP3 | ❌ Prefer the preserved original build in `reference/original-app-xp/` (`docs/PENDING.md` P2) |
+
+The Windows 10 1607 floor is declared in `src/Directory.Build.targets`, enforced by a guard test,
+and the platform analyzer flags any API newer than it. Details, caveats and the ARM64 note:
+`docs/WINDOWS_COMPATIBILITY.md`.
 
 The app starts **without administrator rights** when the Npcap driver allows it, and offers a
 single elevated restart only if the driver is restricted.

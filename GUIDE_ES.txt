@@ -1,223 +1,254 @@
 ﻿SELFISHNET v2 - CÓMO FUNCIONA
-Guía en lenguaje sencillo sobre qué hace esta aplicación y cómo lo hace.
+Una guía sencilla para entender qué hace esta aplicación y cómo funciona.
 
 --------------------------------------------------------------------
 1. QUÉ HACE ESTA APLICACIÓN
 --------------------------------------------------------------------
-SelfishNet v2 es un controlador de tráfico para redes locales (LAN) en
-Windows. Desde una PC de tu red puedes:
+SelfishNet v2 es una herramienta para controlar el tráfico de red en una LAN (red de área local) desde Windows.
+Desde una sola PC conectada a tu red, puedes:
 
-  - Ver los dispositivos conectados a tu red local (IP, MAC, nombre).
+  - Ver los dispositivos conectados a tu red local (dirección IP, dirección MAC y nombre).
   - Limitar la velocidad de descarga y subida de cada dispositivo.
-  - Bloquear por completo el tráfico de un dispositivo.
-  - Ver gráficas de ancho de banda en vivo, totales y por dispositivo.
+  - Bloquear por completo el tráfico de red de un dispositivo.
+  - Ver gráficos en tiempo real del ancho de banda de toda la red y de cada dispositivo.
 
-Funciona a bajo nivel: en lugar de configurar el router, la aplicación
-convence temporalmente a los demás dispositivos de enviar su tráfico a
-través de tu computadora. Tu PC reenvía ese tráfico a la velocidad que
-elijas. Al presionar Detener (o cerrar la app), todo se restaura.
+La aplicación funciona a bajo nivel. En lugar de configurar el router, redirige temporalmente el tráfico de los dispositivos seleccionados a través de tu computadora mediante una técnica llamada suplantación de ARP (ARP spoofing). Tu computadora se encarga de reenviar ese tráfico aplicando los límites de velocidad que hayas configurado.
 
-Usos típicos: probar cómo se comporta una app con conexión lenta,
-limitar un dispositivo invitado o aprender cómo funcionan las redes.
-Úsala solo en redes propias o autorizadas.
+Cuando presionas Stop o cierras la aplicación normalmente, SelfishNet envía mensajes ARP correctivos para ayudar a restablecer las asociaciones de red originales.
+
+Entre sus usos habituales están comprobar cómo se comporta una aplicación con una conexión lenta, limitar el ancho de banda disponible para un dispositivo invitado o aprender cómo funcionan las redes locales. Utiliza esta herramienta únicamente en redes de tu propiedad o para las que tengas autorización expresa para realizar pruebas.
 
 --------------------------------------------------------------------
-2. LA IDEA CENTRAL: ARP Y EL "HOMBRE EN EL MEDIO"
+2. LA IDEA PRINCIPAL: ARP Y EL «ATAQUE DE INTERMEDIARIO»
 --------------------------------------------------------------------
-Dentro de una LAN, los dispositivos no se comunican solo por dirección
-IP: necesitan la dirección física (MAC) del destino. El protocolo que
-traduce "dirección IP -> dirección MAC" se llama ARP.
+En una LAN, los dispositivos utilizan direcciones IP para identificar los destinos de red, pero las tramas Ethernet también necesitan la dirección física del destino, conocida como dirección MAC. El protocolo que relaciona una dirección IPv4 con una dirección MAC se llama ARP (Protocolo de resolución de direcciones).
 
-Cuando una computadora quiere enviar algo al router, pregunta a la red:
-"¿Quién tiene 192.168.1.1? Dime su MAC". El router responde y la
-computadora guarda esa respuesta en su caché ARP por un tiempo corto.
+Cuando una computadora necesita enviar tráfico al router, transmite una solicitud ARP a la red local: «¿Quién tiene la dirección 192.168.1.1? Indícame tu dirección MAC». El router responde con su dirección MAC, y la computadora guarda temporalmente esa asociación en su caché ARP.
 
-ARP se diseñó en una época más simple y no tiene autenticación:
-cualquier dispositivo puede responder y la mayoría de los sistemas
-simplemente cree la última respuesta.
+ARP fue diseñado sin un mecanismo de autenticación integrado. Por eso, algunos dispositivos pueden aceptar respuestas ARP falsificadas y actualizar sus cachés con asociaciones incorrectas entre direcciones IP y MAC.
 
-SelfishNet aprovecha eso. Por cada dispositivo que eliges, envía dos
-pequeñas respuestas ARP falsas:
+SelfishNet aprovecha este comportamiento. Para cada dispositivo que selecciones, envía dos respuestas ARP falsificadas principales:
 
-  1. Al dispositivo:  "La MAC del router es MI MAC."
-  2. Al router:       "La MAC de ese dispositivo es MI MAC."
+  1. Al dispositivo:  «La dirección IP del router está asociada con MI DIRECCIÓN MAC».
+  2. Al router:        «La dirección IP de ese dispositivo está asociada con MI DIRECCIÓN MAC».
 
-Ahora ambos lados envían su tráfico a tu computadora en lugar de
-hacerlo directamente entre ellos. Tu PC queda en el medio. Por eso la
-técnica se llama envenenamiento ARP (ARP spoofing) y la posición se
-llama hombre en el medio (man-in-the-middle).
+Si ambos aceptan estas asociaciones falsificadas, comienzan a enviar a tu computadora el tráfico que originalmente debía ir directamente del uno al otro. Tu computadora queda situada entre el dispositivo y el router. Esta técnica se conoce como suplantación de ARP (ARP spoofing), y la posición resultante se denomina ataque de intermediario (man-in-the-middle o MITM).
 
-La app repite esas respuestas falsas con regularidad (cada 2 segundos
-en el motor Moderno, cada 5 segundos en el motor Legacy) porque los
-dispositivos renuevan sus cachés ARP. Las entradas falsas no son
-permanentes, pero además la app restaura todo de inmediato al
-detenerse (ver sección 6).
+La aplicación vuelve a enviar periódicamente respuestas ARP falsificadas para mantener la redirección, ya que los dispositivos pueden actualizar sus cachés ARP o recibir información ARP contradictoria. El intervalo es de 2 segundos con el motor Modern y de 5 segundos con el motor Legacy.
+
+El motor Modern también incorpora una defensa ARP reactiva que responde a determinados eventos ARP que podrían deshacer la redirección.
+
+Cuando la aplicación se detiene, las asociaciones ARP falsificadas pueden permanecer hasta que sean reemplazadas o caduquen. SelfishNet también envía mensajes ARP correctivos al detenerse para ayudar a restablecer las asociaciones originales (consulta la sección 6).
 
 --------------------------------------------------------------------
 3. CÓMO SE REENVÍA Y SE LIMITA EL TRÁFICO
 --------------------------------------------------------------------
-Mientras la app está en el medio, recibe el tráfico que engañó a los
-dispositivos para que le enviasen. Por cada paquete decide:
+Mientras la aplicación está situada entre un dispositivo controlado y el router, recibe el tráfico que se ha redirigido a través de tu computadora. Para cada paquete, determina qué hacer según su dirección, la configuración del dispositivo y los límites de ancho de banda establecidos.
 
   Descarga (router -> dispositivo):
-    El paquete llegó del router y va dirigido a un dispositivo que
-    controlamos. Si está bloqueado o superó su límite, se descarta.
-    Si no, la app reescribe la MAC de destino con la MAC real del
-    dispositivo y lo envía.
+    El paquete llega desde el router y está destinado a un dispositivo
+    controlado. Si el dispositivo está bloqueado o se ha alcanzado el
+    límite de ancho de banda correspondiente, el paquete se descarta.
+    De lo contrario, la aplicación cambia la dirección MAC de destino
+    por la dirección MAC real del dispositivo y reenvía el paquete.
 
   Subida (dispositivo -> router):
-    El paquete salió de un dispositivo controlado. Misma regla:
-    descartar si está bloqueado o superó el límite; si no, reescribir
-    la MAC de destino con la del router real y reenviarlo.
+    El paquete se origina en un dispositivo controlado y está destinado
+    al router. Se aplica la misma regla: si el dispositivo está
+    bloqueado o se ha alcanzado su límite de ancho de banda, el paquete
+    se descarta. De lo contrario, la aplicación cambia la dirección MAC
+    de destino por la dirección MAC real del router y reenvía el paquete.
 
-  Tráfico hacia tu propia PC:
-    Se cuenta en las estadísticas, nunca se reenvía.
+  Tráfico de tu propia PC:
+    Se contabiliza en las estadísticas, pero la aplicación no lo vuelve
+    a reenviar.
 
-Dos motores lo hacen de forma distinta:
+La aplicación ofrece dos motores de control de tráfico, que aplican los límites de ancho de banda de manera diferente:
 
   MOTOR LEGACY
-    Un port fiel del programa original de 2007. Su límite es una
-    ventana fija de 1 segundo: al inicio de cada segundo el
-    dispositivo recibe toda su cuota; cuando la agota, los paquetes
-    siguientes se descartan hasta el próximo segundo. Simple y
-    predecible, pero a ráfagas.
+    Es una implementación fiel de los mecanismos del programa original
+    de 2007. Aplica los límites mediante intervalos fijos de 1 segundo.
+    Al comienzo de cada segundo, se restablece el cupo de transferencia
+    del dispositivo. Una vez consumido ese cupo, los paquetes
+    adicionales se descartan hasta que comienza el siguiente segundo.
 
-  MOTOR MODERNO (predeterminado)
-    El mismo spoofing y reenvío, con un control más suave. Usa un
-    "balde de fichas" (token bucket): la cuota se recarga de forma
-    continua (como un balde que se llena gota a gota) y un paquete se
-    envía solo si hay suficientes fichas. Así se evitan las ráfagas de
-    encendido/apagado del método antiguo. Además entiende tráfico con
-    etiquetas VLAN y reacciona al instante si un dispositivo intenta
-    volver a aprender el router real a nuestras espaldas.
+    Este método es sencillo y predecible, pero puede generar ráfagas de
+    tráfico seguidas de períodos en los que se pierden paquetes.
 
-Puedes cambiar de motor en cualquier momento desde la barra superior.
-La app detiene el control, repara la red, inicia el otro motor y
-continúa. Los dispositivos, límites y nombres se conservan.
+    El motor Legacy conserva el comportamiento original al procesar
+    paquetes, incluida su secuencia de cuatro tramas ARP para la
+    suplantación. No utiliza la defensa ARP reactiva del motor Modern y
+    no ofrece el mismo procesamiento compatible con tráfico etiquetado
+    con VLAN.
 
-Los límites se escriben en KByte/s o KBit/s (se cambia en la barra
-superior); 0 significa ilimitado. Internamente todo se guarda en
-bytes por segundo, así que cambiar de unidad nunca cambia tus límites.
+  MOTOR MODERN (predeterminado)
+    Utiliza el mismo enfoque básico de suplantación de ARP y reenvío de
+    paquetes, pero ofrece un control del ancho de banda más gradual
+    mediante un algoritmo de depósito de tokens (token bucket).
 
---------------------------------------------------------------------
-4. QUÉ LEE LA APP (Y QUÉ NO)
---------------------------------------------------------------------
-La app lee las cabeceras de los paquetes para conocer direcciones y
-medir velocidades. No descifra tráfico y no escribe en disco el
-contenido de los paquetes, registros de tráfico ni historial de
-navegación. En esta versión los únicos archivos que crea son:
+    Los tokens se acumulan continuamente según la velocidad
+    configurada, hasta alcanzar la capacidad máxima del depósito.
+    Un paquete solo puede reenviarse cuando hay suficientes tokens
+    disponibles. Esto ayuda a reducir el comportamiento irregular del
+    motor Legacy.
 
-  - settings.json: tus ajustes (idioma, tema, unidades, último
-    adaptador, motor).
-  - known_devices.json: nombres y límites de dispositivos, recordados
-    por dirección MAC, para que vuelvan la próxima vez.
+    El motor Modern también admite tráfico IPv4 etiquetado con VLAN y
+    utiliza una defensa ARP reactiva para responder a determinados
+    eventos que podrían restablecer las asociaciones originales.
+    Su secuencia de suplantación omite una trama inactiva que el motor
+    Legacy conserva por compatibilidad con el programa original.
 
-Ambos viven en %AppData%\SelfishNetV2\. No se escribe ningún registro
-de diagnóstico ni de tráfico.
+Puedes cambiar de motor en cualquier momento desde la barra de herramientas. Al hacerlo, la aplicación detiene el control del tráfico, intenta restablecer las asociaciones ARP originales, cierra el motor actual, inicia el otro y reanuda la operación.
 
---------------------------------------------------------------------
-5. DESCUBRIMIENTO DE DISPOSITIVOS
---------------------------------------------------------------------
-Al abrirse, y luego en silencio cada 60 segundos, la app envía
-peticiones ARP a cada dirección de tu subred ("¿quién está ahí?") y
-escucha las respuestas. También aprende de forma pasiva del tráfico
-ARP que ya ocurre, así que la mayoría de los dispositivos nuevos
-aparecen sin hacer nada. El botón Descubrir fuerza un escaneo
-inmediato. Los nombres provienen de DNS inverso y se pueden cambiar
-con doble clic (se guardan por MAC, así que una IP nueva no pierde el
-nombre).
+Los dispositivos detectados, los límites configurados y los nombres personalizados se conservan al cambiar de motor.
+
+Los límites de velocidad se pueden introducir en KByte/s o KBit/s mediante el selector de unidades de la barra de herramientas. El valor 0 significa sin límite. Internamente, los límites se almacenan como números enteros de bytes por segundo, por lo que cambiar las unidades de visualización no modifica el límite de ancho de banda configurado, salvo los posibles efectos del redondeo al mostrar o introducir valores enteros.
 
 --------------------------------------------------------------------
-6. DEJAR LA RED LIMPIA (REPARACIÓN)
+4. QUÉ DATOS LEE LA APLICACIÓN (Y CUÁLES NO)
 --------------------------------------------------------------------
-Las cachés ARP de tus dispositivos siguen apuntando a tu computadora
-cuando detienes la app. La app lo corrige enviando mensajes ARP
-genuinos con las direcciones reales:
+La aplicación inspecciona las cabeceras de los paquetes Ethernet e IP para identificar direcciones, clasificar el tráfico, modificar direcciones MAC al reenviar paquetes y medir las velocidades de transferencia. No descifra el tráfico de las aplicaciones ni serializa el contenido de los paquetes para guardarlo en disco.
 
-  - 35 pares de correcciones unicast (dispositivo <-> router) por
-    dispositivo.
-  - 3 anuncios broadcast para el router y 3 por cada dispositivo, que
-    intentan refrescar las cachés de máquinas que no respondieron a
-    nuestras correcciones unicast.
+Los datos persistentes de la aplicación se guardan en dos archivos:
 
-La app recuerda cada dispositivo que realmente envenenó, sin importar
-las casillas, así que nunca "olvida" reparar uno: desmarcar un
-dispositivo a mitad de sesión lo repara de inmediato, y detener,
-cambiar de motor, cambiar de adaptador o cerrar la app ejecutan la
-misma reparación.
+  - %AppData%\SelfishNetV2\settings.json
+    Guarda la configuración de la aplicación, incluidos el idioma,
+    el tema visual, las unidades de ancho de banda, el último adaptador
+    de red utilizado y el motor seleccionado.
 
-Si la app se cierra a la fuerza (Administrador de tareas, corte de
-luz), no puede reparar. No es permanente: las entradas ARP pueden
-permanecer hasta que se sobrescriban o caduquen, y cuánto tarda eso
-varía según el dispositivo y el sistema operativo. Un Detener o
-Cerrar normal siempre repara primero.
+  - %AppData%\SelfishNetV2\known_devices.json
+    Guarda información de los dispositivos conocidos asociada a sus
+    direcciones MAC, incluidos los nombres personalizados, los límites
+    de ancho de banda, los estados de las opciones Block y Spoof,
+    la última dirección IP conocida y la información de la última vez
+    que se detectó cada dispositivo.
+
+La aplicación no genera archivos de registro de diagnóstico ni del tráfico de red.
 
 --------------------------------------------------------------------
-7. QUÉ NECESITA PARA FUNCIONAR
+5. DETECCIÓN DE DISPOSITIVOS
 --------------------------------------------------------------------
-  - Windows 10 u 11. Hay una versión para 64 bits y otra para 32 bits
-    (usa la de x64 en una PC moderna).
+Al iniciarse, la aplicación busca dispositivos en la subred local y repite el escaneo aproximadamente cada 60 segundos. Envía solicitudes ARP a las direcciones de la subred y escucha las respuestas para identificar los dispositivos activos.
+
+La aplicación también detecta dispositivos de forma pasiva al supervisar el tráfico ARP que ya circula por la red. Así, muchos dispositivos pueden aparecer sin necesidad de iniciar un escaneo manual.
+
+El botón Discover inicia un escaneo inmediato. Los nombres de los dispositivos se obtienen mediante consultas DNS inversas cuando están disponibles. Puedes cambiar el nombre de un dispositivo haciendo doble clic sobre su nombre. Los nombres se guardan asociados a la dirección MAC, por lo que siguen vinculados al mismo dispositivo aunque cambie su dirección IP.
+
+--------------------------------------------------------------------
+6. CÓMO DEJAR LA RED EN SU ESTADO ORIGINAL (RESTAURACIÓN)
+--------------------------------------------------------------------
+Cuando se detiene el control del tráfico, los dispositivos pueden conservar entradas en sus cachés ARP que asocian la dirección IP del router con la dirección MAC de tu computadora, y viceversa. La aplicación intenta corregir estas asociaciones enviando mensajes ARP con las direcciones MAC reales.
+
+El procedimiento de restauración incluye:
+
+  - 35 pares de mensajes ARP correctivos unicast entre cada dispositivo
+    controlado y el router.
+  - 3 anuncios ARP por broadcast para el router y 3 para cada
+    dispositivo. Estos anuncios intentan actualizar las cachés ARP,
+    incluso en equipos que no respondieron a las correcciones unicast.
+
+La aplicación registra los dispositivos cuyas asociaciones ARP ha modificado, independientemente del estado actual de sus casillas de selección. Esto ayuda a evitar que algún dispositivo quede fuera del proceso de restauración.
+
+Si desmarcas un dispositivo mientras la sesión está activa, la aplicación intenta restaurar inmediatamente sus asociaciones ARP. Detener el control del tráfico, cambiar de motor, cambiar de adaptador de red o eliminar un dispositivo del catálogo activo también activa el procedimiento de restauración correspondiente.
+
+Antes de realizar la restauración, la aplicación intenta resolver la dirección MAC del router si ya no la conoce. Si no consigue completar la restauración, conserva el registro del dispositivo afectado para volver a intentarlo cuando sea posible.
+
+Si la aplicación se termina por la fuerza, por ejemplo, desde el Administrador de tareas o debido a un corte de energía, no puede realizar esta limpieza. Las entradas ARP falsificadas pueden permanecer hasta que sean reemplazadas o caduquen. El tiempo que tardan en hacerlo depende del dispositivo y del sistema operativo.
+
+Al utilizar Stop o cerrar la aplicación normalmente, SelfishNet tiene la oportunidad de enviar los mensajes ARP correctivos antes de salir. Sin embargo, la restauración no se puede garantizar en todos los entornos de red.
+
+--------------------------------------------------------------------
+7. REQUISITOS PARA EJECUTAR LA APLICACIÓN
+--------------------------------------------------------------------
+  - Windows 10 u 11. Hay versiones disponibles para Windows de 64 y
+    32 bits. En una PC moderna con Windows de 64 bits, utiliza la
+    versión x64.
   - Npcap (https://npcap.com) o el antiguo WinPcap. Npcap es el
-    controlador moderno y firmado; la app lo detecta automáticamente.
-    Es el único componente externo: la app en sí es un solo .exe
-    portátil que no necesita instalar .NET.
-  - Los permisos de Administrador pueden ser necesarios: el acceso a
-    paquetes crudos lo controla el driver. La app inicia como usuario
-    normal; si el driver está restringido a administradores (una
-    opción al instalar Npcap), ofrece reiniciar con elevación. Si
-    Npcap se instaló con acceso sin restricciones, no hace falta
-    elevación.
+    controlador moderno y firmado para la captura de paquetes. La
+    aplicación detecta automáticamente el controlador disponible.
+    Es el único componente externo necesario para capturar y enviar
+    paquetes de red en vivo.
+  - Según la configuración del controlador de paquetes, puede ser
+    necesario contar con permisos de administrador. Normalmente,
+    la aplicación se inicia sin privilegios elevados, comprueba si
+    puede acceder al controlador y, si se deniega el acceso, ofrece
+    reiniciarse con permisos de administrador.
+
+SelfishNet se distribuye como un ejecutable portátil, por lo que no requiere una instalación independiente de .NET.
 
 --------------------------------------------------------------------
-8. LÍMITES Y CASOS ESPECIALES CONOCIDOS
+8. LIMITACIONES Y CASOS ESPECIALES CONOCIDOS
 --------------------------------------------------------------------
-  - Un adaptador de red y una subred a la vez.
-  - Solo IPv4.
-  - Los dispositivos deben estar en la misma red local (mismo segmento
-    de capa 2).
-  - Limitar la subida depende de que el dispositivo acepte nuestra
-    respuesta ARP falsa. Si la ignora, sus subidas pueden saltarse el
-    límite mientras las descargas siguen funcionando.
-  - Algunas redes Wi-Fi usan "aislamiento de clientes" o protección
-    ARP en el router; ahí el spoofing no puede funcionar (la red
-    bloquea el tráfico entre dispositivos). Es una configuración del
-    router, no un fallo de la app.
-  - Si el reenvío de paquetes de Windows (IPEnableRouter) está
-    activado, el sistema puede desviar el tráfico y los límites no se
-    aplican. La app te avisa; desactívalo para tener control total.
-  - Los sistemas mesh con varias direcciones MAC de puerta de enlace
-    solo están soportados parcialmente (se sigue una sola identidad de
-    router).
-  - El tráfico de tu propia PC no se limita desde la app.
+  - Solo se puede administrar un adaptador de red y una subred a la vez.
+  - Solo admite IPv4; el tráfico IPv6 no está soportado.
+  - Los dispositivos deben estar en el mismo segmento de red local
+    (capa 2).
+  - El motor Modern admite tráfico IPv4 etiquetado con VLAN. El motor
+    Legacy conserva el procesamiento de paquetes con desplazamientos
+    fijos del programa original y puede no procesar correctamente
+    el tráfico etiquetado con VLAN.
+  - La limitación de subida depende de que el dispositivo acepte la
+    respuesta ARP falsificada y de que la aplicación conozca la
+    dirección MAC correcta del router. Si el dispositivo ignora la
+    respuesta falsificada, su tráfico de subida puede no quedar
+    limitado aunque la limitación de descarga funcione.
+  - Algunas redes Wi-Fi tienen activado el aislamiento de clientes
+    o mecanismos de protección ARP. Estas funciones pueden impedir
+    la suplantación de ARP o bloquear la comunicación entre dispositivos
+    necesaria para que funcione esta técnica. Se trata de una
+    limitación de configuración o compatibilidad de la red, no
+    necesariamente de un error de la aplicación.
+  - Si el reenvío de paquetes de Windows está habilitado mediante la
+    configuración IPEnableRouter, parte del tráfico puede evitar la
+    ruta de procesamiento prevista por la aplicación. En consecuencia,
+    los límites de ancho de banda podrían no aplicarse como se espera.
+    La aplicación muestra el estado del reenvío; sigue las indicaciones
+    que proporciona para esta configuración.
+  - Los sistemas de malla (mesh) y otras redes con varias direcciones
+    MAC de puerta de enlace solo son compatibles parcialmente.
+    La aplicación realiza el seguimiento de una única identidad de
+    puerta de enlace, que podría no cubrir todas las rutas de la red.
+  - La aplicación no limita el tráfico que se origina en tu propia PC
+    ni el que tiene como destino esa misma computadora.
 
 --------------------------------------------------------------------
 9. INICIO RÁPIDO
 --------------------------------------------------------------------
-  1. Ejecuta SelfishNetV2.exe. Si Windows pide Administrador, acéptalo;
-     si no, la app inicia como usuario normal (ver sección 7).
-  2. Elige tu adaptador de red (el que tiene la puerta de enlace de tu
-     LAN).
-  3. Los dispositivos aparecen solos; usa Descubrir si hace falta.
-  4. Escribe un límite de descarga/subida en la tabla, o marca
-     Bloquear. Marca/desmarca Interceptar para incluir/excluir un
-     dispositivo (todos incluidos por defecto).
-  5. Presiona Iniciar Control. El punto de estado se pone verde.
-  6. Presiona Detener antes de cerrar si quieres la reparación más
-     rápida; cerrar también repara.
+  1. Ejecuta SelfishNetV2.exe. Si se deniega el acceso al controlador
+     de paquetes, sigue las indicaciones para reiniciar la aplicación
+     con permisos de administrador.
+  2. Selecciona el adaptador de red conectado a la LAN donde se
+     encuentran tu router o puerta de enlace predeterminada.
+  3. Espera a que aparezcan los dispositivos automáticamente o
+     presiona Discover para iniciar un escaneo inmediato.
+  4. Introduce los límites de descarga y subida en la tabla de
+     dispositivos, o activa Block para impedir que se reenvíe el
+     tráfico de un dispositivo.
+     Utiliza la casilla Spoof para incluir o excluir un dispositivo
+     del control del tráfico. De forma predeterminada, todos los
+     dispositivos están incluidos.
+  5. Presiona Start Shaping para comenzar. El indicador de estado
+     se pondrá verde cuando el control del tráfico esté activo.
+  6. Presiona Stop antes de cerrar la aplicación para iniciar la
+     restauración de la red. El cierre normal de la aplicación
+     también activa este procedimiento.
 
 Consejos:
-  - Mantén la app abierta mientras controlas; cerrarla detiene el
-    control.
-  - Si un límite parece ignorarse, vuelve a Iniciar después de
-    cambiarlo (el motor lee los límites en vivo, pero una nueva ronda
-    de envenenamiento ayuda con dispositivos tercos).
-  - El interruptor Legacy/Moderno es la forma más rápida de comparar
-    comportamientos.
+  - Mantén la aplicación abierta mientras el control del tráfico esté
+    activo. Al cerrarla, se detiene el control y se inicia la
+    restauración de la red.
+  - Si un límite parece no aplicarse, comprueba la configuración del
+    dispositivo e intenta detener y reiniciar el control del tráfico.
+    Aunque el motor lee los límites dinámicamente, reiniciarlo puede
+    provocar un nuevo ciclo de suplantación ARP que ayude con los
+    dispositivos que conservan asociaciones ARP contradictorias.
+  - Utiliza el selector Legacy/Modern para comparar el comportamiento
+    de la limitación por intervalos fijos y del control mediante
+    depósito de tokens.
 
 --------------------------------------------------------------------
-10. NOTA DE SEGURIDAD Y LEGALIDAD
+10. NOTA DE SEGURIDAD Y USO LEGAL
 --------------------------------------------------------------------
-Redirigir el tráfico de otro dispositivo es intrusivo. Úsalo solo en
-redes propias o con permiso explícito para probar. Los autores no se
-hacen responsables del mal uso. La app siempre intenta devolver la red
-a su estado original al detenerse.
+Redirigir el tráfico de red de otro dispositivo es una operación intrusiva que puede interrumpir la conectividad y exponer el tráfico a interceptación. Utiliza SelfishNet únicamente en redes de tu propiedad o para las que tengas autorización expresa para realizar pruebas. Los autores no se hacen responsables del uso no autorizado o indebido de la aplicación.
+
+Cuando se detiene normalmente, la aplicación intenta restablecer las asociaciones ARP originales de la red mediante correcciones unicast y anuncios ARP por broadcast. Estos mensajes ayudan a actualizar las cachés ARP, pero no se puede garantizar la restauración en todos los entornos de red, especialmente si la aplicación termina por la fuerza o los dispositivos rechazan los mensajes correctivos.

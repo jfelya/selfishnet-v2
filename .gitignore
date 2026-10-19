@@ -1,9 +1,42 @@
-# Build artifacts
-bin/
-obj/
-publish/
-.vs/
-*.user
+# ---------------------------------------------------------------
+# SelfishNet v2 - repository ignore rules
+# ---------------------------------------------------------------
 
-# Regenerable published single-file exes (prototype's is 154 MB — over GitHub's 100 MB limit)
+# Build output (any depth)
+[Bb]in/
+[Oo]bj/
+publish/
+TestResults/
+artifacts/
+
+# Debug symbols / logs produced by local builds
+*.pdb
+*.log
+*.binlog
+*.trx
+
+# IDE / editor state
+.vs/
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+
+# OS noise
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Regenerable published single-file executable of the frozen prototype.
+# It is ~154 MB and exceeds GitHub's 100 MB file limit; rebuild it with
+# prototype/SelfishNetV2.Test/publish.bat if ever needed.
 prototype/SelfishNetV2.Test/SelfishNetV2.exe
+
+# NOTE: the following are deliberately TRACKED (project material, not build output):
+#   - GUIDE_EN.txt / GUIDE_ES.txt (user documentation)
+#   - reference/**               (golden binaries, redistributables, RE tools)
+#   - prototype/**               (frozen prototype source)
+#   - docs/**, src/**            (specifications and application source)

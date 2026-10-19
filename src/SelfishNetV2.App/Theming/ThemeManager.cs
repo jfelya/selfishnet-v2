@@ -41,10 +41,18 @@ public static class ThemeManager
     }
 }
 
-/// <summary>Immersive dark title bar (Windows 10 1809+ / 11) via DWM.</summary>
+/// <summary>
+/// Immersive dark title bar via DWM. Supported from Windows 10 1809; the
+/// attribute number changed with 1903, so both are attempted:
+///   1809 (build 17763)        -> 19
+///   1903+ (build 18362+) / 11 -> 20
+/// On Windows 10 1607–1803 neither exists; the call fails silently and the
+/// window simply keeps the standard title bar (nothing breaks).
+/// </summary>
 public static class TitleBarHelper
 {
-    private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;          // Windows 10 1903+ / Windows 11
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE_1809 = 19;     // Windows 10 1809
 
     public static void Apply(Window window, AppTheme theme)
     {
@@ -53,9 +61,10 @@ public static class TitleBarHelper
             var hwnd = new WindowInteropHelper(window).Handle;
             if (hwnd == IntPtr.Zero) return;
             int useDark = theme == AppTheme.Dark ? 1 : 0;
-            DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDark, sizeof(int));
+            if (DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDark, sizeof(int)) != 0)
+                DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_1809, ref useDark, sizeof(int));
         }
-        catch { /* older Windows: keep default chrome */ }
+        catch { /* below 1809: keep the default (light) chrome */ }
     }
 
     [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
