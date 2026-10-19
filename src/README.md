@@ -1,8 +1,13 @@
 # src/ — Clean Rebuild
 
-Stack confirmed 2026-10-18: **C# / .NET 8 / WPF**, self-contained single-file `win-x64`.
-The solution builds clean (`dotnet build SelfishNetV2.sln` — 0 warnings / 0 errors).
-Ship the portable exe with `publish.bat` → output lands in `..\publish\SelfishNetV2.exe`.
+Stack: **C# / .NET 8 / WPF**, self-contained single-file `win-x64`.
+Implemented end-to-end; solution builds clean and all 75 tests pass.
+
+```powershell
+dotnet build SelfishNetV2.sln -c Release
+dotnet test  SelfishNetV2.sln -c Release
+publish.bat          # → ..\publish\SelfishNetV2.exe (~72 MB, portable)
+```
 
 Layout:
 

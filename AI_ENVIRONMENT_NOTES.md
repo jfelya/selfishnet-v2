@@ -7,10 +7,16 @@
   *Modern* engine, switchable at runtime), a modern dark/light UI with live bandwidth charts, and
   bilingual support (English US / Latin American Spanish, hot-swappable).
 - **Author/Owner:** Fely
-- **Current phase:** Stack confirmed (2026-10-18): **C# / .NET 8 / WPF**, self-contained single-file;
-  Npcap strategy = detect-and-prompt. Solution scaffold in `src/` is wired and builds clean
-  (0 warnings / 0 errors). Next: implement per `docs/REVAMP_BLUEPRINT.md` phase order
-  (Drivers → Core → Engines → Services → App).
+- **Current phase (2026-10-19): IMPLEMENTATION COMPLETE.** All layers implemented in `src/`:
+  Core → Drivers → Engines (Legacy + Modern) → Services → WPF App → Tests. Build is clean
+  (0 warnings / 0 errors), **75/75 tests pass**, portable single-file `publish/SelfishNetV2.exe`
+  (~72 MB) verified. Remaining work = user acceptance testing on real hardware / polish feedback.
+- **Git:** repo initialized, remote `https://github.com/jfelya/selfishnet-v2`.
+- **UI verification method (no admin/UAC needed):** a temporary console harness referencing the App
+  assembly, calling `new App().InitializeComponent()`, constructing `MainWindow`, then
+  `Measure/Arrange/UpdateLayout` + theme/command exercise. This caught a real bug — use
+  **component-relative pack URIs** (`pack://application:,,,/{AssemblyName};component/...`) for theme
+  dictionaries; application-relative URIs break when the shell is hosted by another exe.
 
 ---
 
@@ -72,7 +78,16 @@ SelfishNet v2/
 ├── prototype/                   # Frozen "free model test" prototype (reference only, do not extend)
 │   ├── README_FREE_MODEL_TEST.md
 │   └── SelfishNetV2.Test/          # C#/.NET 8 WinForms source (+ published SelfishNetV2.exe)
-└── src/                         # ★ The clean rebuild lives here (pending stack confirmation)
+├── src/                         # ★ The revamp (implemented)
+│   ├── SelfishNetV2.sln
+│   ├── SelfishNetV2.Core/          # DTOs, DeviceCatalog, ArpFrameBuilder, PacketClassifier, TokenBucket
+│   ├── SelfishNetV2.Drivers/       # wpcap FFI, PcapCaptureSession, LoopbackDriver, ABI self-test
+│   ├── SelfishNetV2.Engines/       # IEngineSession, EngineSessionBase, LegacyEngine, ModernEngine
+│   ├── SelfishNetV2.Services/      # Localization, Settings, KnownDevices, EngineOrchestrator
+│   ├── SelfishNetV2.App/           # WPF shell (themes, charts, view models, views)
+│   ├── SelfishNetV2.Tests/         # 75 tests (parity, ABI, engines, swap, hammer, formatter)
+│   └── publish.bat                 # → ..\publish\SelfishNetV2.exe
+└── publish/                     # portable exe output (git-ignored)
 ```
 
 ## 6. Environment Facts

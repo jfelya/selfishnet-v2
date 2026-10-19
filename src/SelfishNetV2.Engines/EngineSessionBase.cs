@@ -256,6 +256,7 @@ public abstract class EngineSessionBase : IEngineSession
         {
             if (_state != EngineRunState.Shaping) return;
             SetState(EngineRunState.Idle);
+            _shapeCts?.Cancel();   // wake the spoof loop out of its 5 s wait…
             _spoofWake.Set();
             JoinThread(_spoofThread); _spoofThread = null;
             _ip?.Dispose(); _ip = null;   // breakloop → join → close

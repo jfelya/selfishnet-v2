@@ -207,11 +207,19 @@ publish/                      # single-file .exe output
 - [x] **Npcap prerequisite: detect-and-prompt** — Npcap → WinPcap fallback → clear bilingual error.
 - [ ] UI language default: keep Español (Latam) default from prototype, or English
 
-### Scaffold state (verified)
+### Implementation status — COMPLETE (2026-10-19)
 
-`src/SelfishNetV2.sln` builds clean. Projects: `Core` (net8.0) · `Drivers` / `Engines` / `Services`
-/ `Tests` (net8.0-windows) · `App` (WPF, `AssemblyName=SelfishNetV2`, `requireAdministrator` +
-PerMonitorV2 manifest). Single-file output: run `src/publish.bat` → `publish/SelfishNetV2.exe`.
-**Next implementation phase:** `Drivers` (wpcap FFI + `PcapHandleGuard` + ABI self-test) →
-`Core` (catalog, frame builder, token bucket + parity tests) → `Engines` (Legacy first, then Modern)
-→ `Services` → `App` shell.
+All phases delivered; `src/SelfishNetV2.sln` builds with 0 warnings / 0 errors, **75/75 tests green**,
+portable single-file exe published (~72 MB).
+
+| Phase | Delivered |
+|---|---|
+| Drivers | Dynamic wpcap function-pointer loader (Npcap → WinPcap), **correct 16-byte LLP64 `pcap_pkthdr`** (C1), `PcapCaptureSession` with mandated `breakloop → join → close` (C2), ABI self-test, `LoopbackDriver` test seam |
+| Core | `DeviceCatalog` (dual numeric index, survives engine swaps), byte-exact `ArpFrameBuilder` (golden vectors), `PacketClassifier` (source-MAC + VLAN walk), `TokenBucket` (hi-res clock, deficit rule, no refill on cap change) |
+| Engines | `EngineSessionBase` (listener, discovery sweep, spoof scheduler, forwarder, 20 s probe / 350 s evict with **heal-before-evict** (C3), stats sampler) + **Legacy** (4-frame burst, hard window) + **Modern** (3-frame burst, token bucket, VLAN, mintocopy=1) |
+| Services | Hot-swap localization (en-US/es-419), settings, known-devices by MAC, `EngineOrchestrator` (heal → teardown → swap → reopen → resume) |
+| App | WPF shell: dark/light themes, custom animated bandwidth charts, per-device caps/block/spoof, adapter picker, units toggle, bilingual UI, busy overlay, fail-closed gateway gate, admin manifest |
+| Verification | Parity vectors, ABI layout, classifier, catalog, token bucket, formatter, full-stack loopback integration (both engines, blocking, caps, healing, engine swap), shutdown hammer ×300, UI smoke (XAML/resources/theme swap) |
+
+Known deliberate deviations (documented): Modern engine omits the inert 4th spoof frame; Legacy cap
+window includes observed (not only forwarded) bytes — both are intentional and covered by tests.

@@ -27,12 +27,14 @@ public class TokenBucketTests
         var clock = new FakeClock();
         var b = new TokenBucket(clock.Read, 1000); // 1 tick = 1 ms
         // 1000 B/s → capacity = 50 (50 ms burst). First use: full bucket.
-        Assert.True(b.TryConsume(1000, 50));   // drains the 50-token bucket
-        Assert.False(b.TryConsume(1000, 1));   // bucket went to 0, then -0... exactly 0 → non-negative passes only when >= 0 before deduct
+        Assert.True(b.TryConsume(1000, 50));   // drains the 50-token bucket → 0
+        Assert.True(b.TryConsume(1000, 1));    // deficit rule: non-negative bucket admits one packet → -1
+        Assert.False(b.TryConsume(1000, 1));   // negative → dropped
         // advance 100 ms → +100 tokens, clamped to capacity 50
         clock.Now += 100;
-        Assert.True(b.TryConsume(1000, 50));
-        Assert.False(b.TryConsume(1000, 1));
+        Assert.True(b.TryConsume(1000, 50));   // → 0
+        Assert.True(b.TryConsume(1000, 1));    // deficit → -1
+        Assert.False(b.TryConsume(1000, 1));   // dropped
     }
 
     [Fact]
@@ -68,6 +70,7 @@ public class TokenBucketTests
         Assert.True(b.TryConsume(1000, 10));   // 40 left
         clock.Now += 60_000;                    // a minute idle
         Assert.True(b.TryConsume(1000, 50));   // capped at 50, not 60k
-        Assert.False(b.TryConsume(1000, 1));
+        Assert.True(b.TryConsume(1000, 1));    // deficit → -1
+        Assert.False(b.TryConsume(1000, 1));   // now negative → dropped
     }
 }
