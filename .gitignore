@@ -35,6 +35,11 @@ $RECYCLE.BIN/
 # prototype/SelfishNetV2.Test/publish.bat if ever needed.
 prototype/SelfishNetV2.Test/SelfishNetV2.exe
 
+# Portable executables are deliverables, not source. They stay in the project
+# root for convenience but are NOT versioned: committing them grows the repo by
+# ~200 MB per build. Distribute via a GitHub Release instead. See tools/README.md.
+SelfishNetV2-*.exe
+
 # NOTE: the following are deliberately TRACKED (project material, not build output):
 #   - GUIDE_EN.txt / GUIDE_ES.txt (user documentation)
 #   - reference/**               (golden binaries, redistributables, RE tools)

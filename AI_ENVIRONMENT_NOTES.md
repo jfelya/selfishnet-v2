@@ -93,13 +93,22 @@ SelfishNet v2/
 │   ├── SelfishNetV2.Engines/       # IEngineSession, EngineSessionBase, LegacyEngine, ModernEngine
 │   ├── SelfishNetV2.Services/      # Localization, Settings, KnownDevices, EngineOrchestrator
 │   ├── SelfishNetV2.App/           # WPF shell (themes, charts, view models, views)
-│   ├── SelfishNetV2.Tests/         # 75 tests (parity, ABI, engines, swap, hammer, formatter)
-│   └── publish.bat                 # → ..\publish\SelfishNetV2.exe
-└── publish/                     # portable exe output (git-ignored)
+│   ├── SelfishNetV2.Tests/         # 85 tests (parity, ABI, engines, swap, hammer, formatter, compat)
+│   └── publish.bat                 # builds ..\publish\{x64,x86,arm64}\SelfishNetV2.exe
+├── tools/                       # Maintenance: clean.cmd / clean.ps1, purge-binaries-from-history.ps1
+├── SelfishNetV2-{x64,x86,arm64}.exe  # Deliverables at the root — git-ignored, never committed
+└── publish/                     # Build output (git-ignored)
 ```
 
 ## 6. Environment Facts
-- OS: Windows (win32), working dir: `C:\Users\Fely\Documents\OpenCode\SelfishNet v2` (not a git repo).
-- Installed toolchains: **.NET SDK 8.0.425 only** (no Rust, no Go, no C++/cmake as of 2026-10-18).
-- Recommended stack (pending confirmation): C# / .NET 8 / WPF, self-contained single-file `win-x64`.
-- The app requires Administrator (raw packet injection) and Npcap or WinPcap on the target machine.
+- OS: Windows (win32), working dir: `C:\Users\Fely\Documents\OpenCode\SelfishNet v2`.
+- Git repo: yes — remote `https://github.com/jfelya/selfishnet-v2` (branch `main`).
+- Installed toolchains: **.NET SDK 8.0.425 only** (no Rust, no Go, no C++/cmake).
+- Stack: C# / .NET 8 / WPF, self-contained single-file; artifacts for `win-x64`, `win-x86`, `win-arm64`.
+- Elevation: `asInvoker`; the app probes driver access and offers one elevated restart only when Npcap
+  restricts the driver. Npcap or WinPcap is the single external prerequisite.
+- **Artifact policy:** build output (`bin/`, `obj/`, `publish/`) and the portable exes
+  (`SelfishNetV2-*.exe`) are git-ignored and must never be committed — each build is ~200 MB,
+  which bloats the repo permanently. Distribute via a GitHub Release instead. Reclaim disk with
+  `tools\clean.cmd`; the already-committed exe blobs can be purged (optional, force-push) with
+  `tools\purge-binaries-from-history.ps1`.
