@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SelfishNetV2.Core\SelfishNetV2.Core.csproj" />
+    <ProjectReference Include="..\SelfishNetV2.Drivers\SelfishNetV2.Drivers.csproj" />
+    <ProjectReference Include="..\SelfishNetV2.Engines\SelfishNetV2.Engines.csproj" />
+    <ProjectReference Include="..\SelfishNetV2.Services\SelfishNetV2.Services.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>SelfishNetV2</AssemblyName>
+    <Version>2.0.0</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+</Project>

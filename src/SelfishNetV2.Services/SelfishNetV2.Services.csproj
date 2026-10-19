@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SelfishNetV2.Core\SelfishNetV2.Core.csproj" />
+    <ProjectReference Include="..\SelfishNetV2.Drivers\SelfishNetV2.Drivers.csproj" />
+    <ProjectReference Include="..\SelfishNetV2.Engines\SelfishNetV2.Engines.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

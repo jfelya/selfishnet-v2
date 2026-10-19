@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SelfishNetV2.Core", "SelfishNetV2.Core\SelfishNetV2.Core.csproj", "{2B8A9F45-3DE2-4122-B881-B24FF05648CF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SelfishNetV2.Drivers", "SelfishNetV2.Drivers\SelfishNetV2.Drivers.csproj", "{604FFA11-E026-49BE-A7FA-3870B3AD7260}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SelfishNetV2.Engines", "SelfishNetV2.Engines\SelfishNetV2.Engines.csproj", "{CBC4C1C2-E007-45F5-BC38-C0E5C722A840}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SelfishNetV2.Services", "SelfishNetV2.Services\SelfishNetV2.Services.csproj", "{F1C25A5C-0508-45E6-AA86-65CE3D4368E6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SelfishNetV2.App", "SelfishNetV2.App\SelfishNetV2.App.csproj", "{4A967F92-4720-4875-AB65-37AEC16D0256}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SelfishNetV2.Tests", "SelfishNetV2.Tests\SelfishNetV2.Tests.csproj", "{852BEE4C-CD39-40B3-BE58-6AC51C048B76}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2B8A9F45-3DE2-4122-B881-B24FF05648CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B8A9F45-3DE2-4122-B881-B24FF05648CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B8A9F45-3DE2-4122-B881-B24FF05648CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B8A9F45-3DE2-4122-B881-B24FF05648CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{604FFA11-E026-49BE-A7FA-3870B3AD7260}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{604FFA11-E026-49BE-A7FA-3870B3AD7260}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{604FFA11-E026-49BE-A7FA-3870B3AD7260}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{604FFA11-E026-49BE-A7FA-3870B3AD7260}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CBC4C1C2-E007-45F5-BC38-C0E5C722A840}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CBC4C1C2-E007-45F5-BC38-C0E5C722A840}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CBC4C1C2-E007-45F5-BC38-C0E5C722A840}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CBC4C1C2-E007-45F5-BC38-C0E5C722A840}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1C25A5C-0508-45E6-AA86-65CE3D4368E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1C25A5C-0508-45E6-AA86-65CE3D4368E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1C25A5C-0508-45E6-AA86-65CE3D4368E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1C25A5C-0508-45E6-AA86-65CE3D4368E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A967F92-4720-4875-AB65-37AEC16D0256}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A967F92-4720-4875-AB65-37AEC16D0256}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A967F92-4720-4875-AB65-37AEC16D0256}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A967F92-4720-4875-AB65-37AEC16D0256}.Release|Any CPU.Build.0 = Release|Any CPU
+		{852BEE4C-CD39-40B3-BE58-6AC51C048B76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{852BEE4C-CD39-40B3-BE58-6AC51C048B76}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{852BEE4C-CD39-40B3-BE58-6AC51C048B76}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{852BEE4C-CD39-40B3-BE58-6AC51C048B76}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

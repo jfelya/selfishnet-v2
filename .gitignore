@@ -1,0 +1,9 @@
+# Build artifacts
+bin/
+obj/
+publish/
+.vs/
+*.user
+
+# Regenerable published single-file exes (prototype's is 154 MB — over GitHub's 100 MB limit)
+prototype/SelfishNetV2.Test/SelfishNetV2.exe
