@@ -175,6 +175,50 @@ public class EngineRobustnessTests
         await engine.StopAndHealAsync();
     }
 
+    private static int CountRestoresToVictim(LoopbackDriver driver) => driver.SentFrames.Count(f =>
+    {
+        if (!IsArp(f, 2)) return false;
+        ArpFrame.TryParse(f, out var a);
+        return a.EthDstMac == Victim && a.SenderMac == Router && a.SenderIp == RouterIp && a.TargetIp == VictimIp;
+    });
+
+    [Fact]
+    public async Task Close_AfterSuccessfulStop_DoesNotReHeal()
+    {
+        // Disposing the engine must not re-send the whole healing burst when every
+        // claim was already resolved by Stop (no spurious traffic on exit).
+        var (driver, _, engine) = OpenLearned(EngineKind.Modern);
+        using var _e = engine;
+        Assert.True(await engine.StartShapingAsync());
+        await engine.StopAndHealAsync();
+
+        int before = CountRestoresToVictim(driver);
+        engine.Close();
+        Thread.Sleep(150);
+        Assert.Equal(before, CountRestoresToVictim(driver));
+    }
+
+    [Fact]
+    public async Task Close_RetriesOutstandingHealClaims_WhenGatewayMacWasLost()
+    {
+        // If a stop could not heal (gateway MAC unknown), the claim is kept and a
+        // later Close must retry it instead of giving up silently.
+        var (driver, catalog, engine) = OpenLearned(EngineKind.Modern);
+        using var _e = engine;
+        Assert.True(await engine.StartShapingAsync());
+        Assert.True(catalog.TryGetByIp(RouterIp, out var gateway));
+        gateway!.MacKey = 0;               // simulate mid-session gateway MAC loss
+
+        await engine.StopAndHealAsync();   // cannot heal: claim is retained
+        int before = CountRestoresToVictim(driver);
+        Assert.Equal(0, before);
+
+        gateway.MacKey = Router;           // gateway known again
+        engine.Close();                    // must retry the outstanding claim
+        Assert.True(WaitUntil(() => CountRestoresToVictim(driver) - before >= 35, 3000),
+            $"expected retry heal on close, saw {CountRestoresToVictim(driver) - before}");
+    }
+
     /// <summary>Modern engine with a fast auto-scan interval so the test stays quick.</summary>
     private sealed class FastScanEngine : ModernEngine
     {

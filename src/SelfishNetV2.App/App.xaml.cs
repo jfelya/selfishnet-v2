@@ -11,10 +11,13 @@ namespace SelfishNetV2.App;
 
 public partial class App : Application
 {
+    private MainViewModel? _viewModel;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
         DispatcherUnhandledException += OnUnhandledException;
+        SessionEnding += OnSessionEnding;
 
         var settings = SettingsStore.Load();
         LocalizationManager.SetLanguage(settings.Language == "English"
@@ -65,9 +68,17 @@ public partial class App : Application
         }
 
         var vm = new MainViewModel(orchestrator, new AdapterService(driver), settings, driverProblem, driverRestricted);
+        _viewModel = vm;
         var window = new MainWindow(vm);
         MainWindow = window;
         window.Show();
+    }
+
+    /// <summary>Logoff/shutdown: heal the LAN synchronously before Windows kills the process.</summary>
+    private void OnSessionEnding(object sender, SessionEndingCancelEventArgs e)
+    {
+        try { _viewModel?.HealSynchronouslyForShutdown(); }
+        catch { /* best effort */ }
     }
 
     private void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

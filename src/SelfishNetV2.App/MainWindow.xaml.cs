@@ -150,6 +150,15 @@ public partial class MainWindow : Window
     {
         if (_closeConfirmed) return;
 
+        // Windows logoff/shutdown: the engine already healed synchronously in
+        // SessionEnding; never block the OS with a confirmation dialog.
+        if (_vm.IsSessionEnding)
+        {
+            _closeConfirmed = true;
+            _vm.Shutdown();
+            return;
+        }
+
         if (!_vm.IsShaping)
         {
             _vm.Shutdown();

@@ -71,6 +71,9 @@ Each is a single self-contained file — no .NET install needed. Copy either one
   of its current "Spoof" checkbox, so un-checking a device mid-session heals it immediately,
   and stop/switch/eviction always repairs what was actually poisoned. If the gateway MAC was
   lost, it is re-resolved before healing; failures keep the claim for a retry on close.
+  Windows logoff/shutdown also heals synchronously (3 s bound) before the process exits.
+  Restoration is best-effort by nature: force-kills and devices with static ARP or ARP filtering
+  cannot be corrected.
 - **Crash-resistant under bursts:** capture parsing is zero-allocation over the native buffer,
   the forwarding buffer is bounds-checked and reused, and per-packet exceptions can never kill
   the capture thread (regression-tested with a 10 000-frame 1514-byte burst).

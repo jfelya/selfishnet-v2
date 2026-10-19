@@ -7,13 +7,17 @@
   *Modern* engine, switchable at runtime), a modern dark/light UI with live bandwidth charts, and
   bilingual support (English US / Latin American Spanish, hot-swappable).
 - **Author/Owner:** Fely
-- **Current phase (2026-10-19): FIELD-TESTED, HARDENED.** All layers implemented; build clean,
-  **81/81 tests pass**, dual-arch portable exes (`publish/x64` ~68 MB, `publish/x86` ~63 MB).
+- **Current phase (2026-10-19): FIELD-TESTED, HARDENED, OS-CERTIFIED BASE.** All layers implemented;
+  build clean, **85/85 tests pass**, triple-arch portable exes (`publish/x64` ~68 MB,
+  `publish/x86` ~63 MB, `publish/arm64` ~65 MB). Supported OS floor is declared (Win10 1607)
+  and guard-tested; see `docs/WINDOWS_COMPATIBILITY.md`. Win7/XP are backlogged in `docs/PENDING.md`.
   First real-network test passed (both engines limited a phone, engine switching worked).
   Post-acceptance changes: reactive ARP defense + 2 s re-poison (Modern), registry-backed
   healing with broadcast gratuitous frames, heal-on-untarget/evict/adapter-switch, 60 s
   auto-discovery, dark-theme readability fix, single language button, unit-aware charts,
-  x64+x86 publishing. Remaining polish comes from user feedback rounds.
+  x64+x86+arm64 publishing, `asInvoker` + driver-access probe (elevate only when needed),
+  session-end healing (logoff/shutdown) and retry of outstanding heal claims on Close.
+  Remaining polish comes from user feedback rounds.
 - **Git:** repo initialized, remote `https://github.com/jfelya/selfishnet-v2`.
 - **UI verification method (no admin/UAC needed):** a temporary console harness referencing the App
   assembly, calling `new App().InitializeComponent()`, constructing `MainWindow`, then

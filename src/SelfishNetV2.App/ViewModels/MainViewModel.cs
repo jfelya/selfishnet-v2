@@ -438,6 +438,31 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>True while Windows is logging off or shutting down — the shell must not
+    /// block that with a confirmation dialog.</summary>
+    public bool IsSessionEnding { get; private set; }
+
+    /// <summary>
+    /// Windows-initiated logoff/shutdown: the process is about to be torn down, so heal
+    /// synchronously with a hard time bound (last chance to restore the network), then
+    /// release the engine. Called from the WPF SessionEnding event on the UI thread.
+    /// </summary>
+    public void HealSynchronouslyForShutdown(int timeoutMs = 3000)
+    {
+        IsSessionEnding = true;
+        if (_orch == null) return;
+        try
+        {
+            if (IsShaping)
+            {
+                var heal = _orch.StopAndHealAsync();
+                if (!heal.Wait(timeoutMs)) return; // never hang the OS shutdown
+            }
+            _orch.Dispose(); // retries any outstanding heal claims
+        }
+        catch { /* best effort during shutdown */ }
+    }
+
     /// <summary>Heals the LAN (if shaping) and disposes the engine before the window closes.</summary>
     public async Task PrepareShutdownAsync()
     {

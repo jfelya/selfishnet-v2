@@ -153,7 +153,6 @@ public abstract class EngineSessionBase : IEngineSession
 
     private void CloseCore(bool healIfNeeded)
     {
-        bool wasShaping = _state == EngineRunState.Shaping;
         _state = EngineRunState.Closed;
         StopDiscovery();
         _shapeCts?.Cancel();
@@ -161,7 +160,9 @@ public abstract class EngineSessionBase : IEngineSession
         _spoofWake.Set();
         JoinThread(_spoofThread); _spoofThread = null;
         _ip?.Dispose(); _ip = null;   // breakloop → join → close (inside session)
-        if (wasShaping && healIfNeeded)
+        // Heal whenever asked — this also retries claims whose earlier heal failed
+        // (UnspoofAll is a no-op when every claim has already been resolved).
+        if (healIfNeeded)
             UnspoofAll();
         _poisoned.Clear();
         JoinThread(_statsThread); _statsThread = null;
@@ -401,7 +402,7 @@ public abstract class EngineSessionBase : IEngineSession
     /// (so our own restore frames can never trigger reactive re-poisoning), resolves the
     /// gateway MAC if it is missing, then restores both directions and announces to the
     /// whole LAN. Returns true when the restore frames were emitted.</summary>
-    protected bool HealOne(uint ipKey, ulong macKey)
+    protected bool HealOne(uint ipKey, ulong macKey, bool resolveRouter = true)
     {
         var adapter = Adapter;
         var arp = _arp;
@@ -412,7 +413,9 @@ public abstract class EngineSessionBase : IEngineSession
         ulong routerMac = RouterMac();
         if (routerMac == 0)
         {
-            ResolveRouterMacForHeal();   // last chance: the gateway must be known to heal
+            // Last chance: the gateway must be known to heal. Resolution is expensive
+            // (up to ~600 ms), so UnspoofAll resolves once and passes resolveRouter:false.
+            if (resolveRouter) ResolveRouterMacForHeal();
             routerMac = RouterMac();
             if (routerMac == 0)
             {
@@ -456,8 +459,12 @@ public abstract class EngineSessionBase : IEngineSession
     /// broadcast announcements per device).</summary>
     private void UnspoofAll()
     {
+        if (_poisoned.Count == 0) return;
+        // One gateway resolution attempt for the whole pass, never one per device —
+        // this keeps shutdown time bounded when the gateway MAC is missing.
+        if (RouterMac() == 0) ResolveRouterMacForHeal();
         foreach (var kv in _poisoned)
-            HealOne(kv.Key, kv.Value);
+            HealOne(kv.Key, kv.Value, resolveRouter: false);
     }
 
     /// <summary>Gateway MAC lost mid-session: ask for it synchronously (heal path only).</summary>

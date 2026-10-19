@@ -253,3 +253,21 @@ Manifest is `asInvoker`. Startup probes the packet driver with a throwaway captu
 Npcap permits standard-user access the app runs fully unelevated, otherwise it offers one
 elevated restart (UAC). Mid-session `AccessDenied` errors surface the same prompt. Full rationale:
 `docs/WINDOWS_COMPATIBILITY.md`.
+
+### Network restoration (best-effort by nature) — 2026-10-19
+
+Restoration is attempted on every orderly stop path: Stop button, window close, Windows
+logoff/shutdown, engine switch, adapter switch, untargeting a device, and eviction.
+
+- The `_poisoned` registry (ip → mac) records what was actually poisoned; healing is a no-op when
+  empty, so normal exits never emit spurious frames.
+- 35 unicast restore pairs per device + 3 broadcast announcements each for the router and the
+  device — an *attempt* to refresh caches, not a guarantee.
+- The gateway MAC is re-resolved at most once per heal pass when missing (bounded shutdown time);
+  failed claims are retained and retried on Close.
+- Windows logoff/shutdown heals synchronously with a 3 s bound (`Application.SessionEnding`) and
+  skips the quit confirmation so the OS is never blocked.
+
+**Cannot be guaranteed in every environment**: a force-kill or power loss leaves no cleanup path,
+and devices that use static ARP, ARP filtering/dynamic ARP inspection, or simply lose the frames
+may reject the corrections. The user guides describe restoration as an attempt for this reason.
