@@ -288,6 +288,47 @@ public class EngineIntegrationTests
     }
 
     [Fact]
+    public async Task Orchestrator_AdapterSwitchWhileShaping_HealsOldLanFirst()
+    {
+        // C3-class guard: changing adapter while shaping must heal the OLD LAN before
+        // the device catalog (and its target list) is dropped.
+        var driver = new LoopbackDriver();
+        var orch = new EngineOrchestrator(driver, KnownDevicesStore.InMemory(), EngineKind.Modern);
+        Assert.True(orch.OpenAdapter(TestAdapter));
+        driver.Inject(ArpReply(Router, RouterIp, Local, LocalIp));
+        driver.Inject(ArpReply(Victim, VictimIp, Local, LocalIp));
+        Assert.True(WaitUntil(() =>
+            orch.Catalog.TryGetByIp(RouterIp, out var gw) && gw.HasKnownMac &&
+            orch.Catalog.TryGetByIp(VictimIp, out var v) && v.HasKnownMac));
+        Assert.True(await orch.StartShapingAsync());
+
+        int sentBeforeSwitch = driver.SentFrames.Count;
+
+        // Switch to a different adapter (different subnet) while shaping is active.
+        var other = TestAdapter with
+        {
+            Id = "{00000000-0000-0000-0000-000000000002}",
+            Name = "Loopback 2",
+            LocalIpKey = 0x0A000001,   // 10.0.0.1
+            GatewayIpKey = 0x0A0000FE // 10.0.0.254
+        };
+        Assert.True(orch.OpenAdapter(other));
+
+        var afterSwitch = driver.SentFrames.Skip(sentBeforeSwitch).Where(IsArpReply).Select(f =>
+        {
+            ArpFrame.TryParse(f, out var a);
+            return a;
+        }).ToList();
+
+        // 35 genuine "router is at routerMAC" frames to the OLD victim before the catalog dropped it.
+        Assert.Equal(35, afterSwitch.Count(a =>
+            a.EthDstMac == Victim && a.SenderMac == Router && a.SenderIp == RouterIp && a.TargetIp == VictimIp));
+        // The old LAN devices are gone; the new adapter is opening.
+        Assert.False(orch.Catalog.TryGetByIp(VictimIp, out _));
+        orch.Dispose();
+    }
+
+    [Fact]
     public async Task Orchestrator_Swap_HealsThenSwitchesEngine()
     {
         var driver = new LoopbackDriver();

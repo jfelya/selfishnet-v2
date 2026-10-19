@@ -61,9 +61,16 @@ public sealed class EngineOrchestrator : IDisposable
     // ---------------- adapter / session lifecycle ----------------
 
     /// <summary>Opens an adapter on the current engine. The catalog is cleared only when
-    /// the user explicitly changes adapter (a different LAN means different devices).</summary>
+    /// the user explicitly changes adapter (a different LAN means different devices).
+    /// If shaping is active on the OLD adapter, the LAN is healed BEFORE the catalog is
+    /// dropped — otherwise the target list would vanish and victims keep poisoned caches.</summary>
     public bool OpenAdapter(AdapterInfo adapter, bool clearCatalog = true)
     {
+        if (_session is { State: EngineRunState.Shaping })
+        {
+            try { _session.StopAndHealAsync().GetAwaiter().GetResult(); }
+            catch { /* best-effort heal */ }
+        }
         if (clearCatalog) _catalog.Clear();
         _adapter = adapter;
         var session = EnsureSession();

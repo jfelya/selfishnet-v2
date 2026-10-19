@@ -33,6 +33,8 @@ public sealed class DeviceViewModel : ObservableObject
     public bool IsGateway => _dev.IsGateway;
     public bool IsLocalPc => _dev.IsLocalPc;
     public bool IsSpecial => _dev.IsGateway || _dev.IsLocalPc;
+    /// <summary>Block/spoof flags are meaningless for our own PC and the gateway (never forwarded).</summary>
+    public bool CanEditFlags => !IsSpecial;
 
     public string DisplayName
     {
