@@ -77,6 +77,7 @@ SelfishNet v2/
 │   ├── MODERNIZATION_ROADMAP.md    # Original phase plan (superseded by REVAMP_BLUEPRINT)
 │   ├── LOCALIZATION_SPEC.md        # en-US / es-419 string matrix
 │   ├── UNIT_NOTATIONS.md           # KByte/s vs KBit/s rules (storage: bytes/s integers only)
+│   ├── PROTOTYPE_POSTMORTEM.md     # Why the prototype failed; failure-mode → fix map
 │   └── REVAMP_BLUEPRINT.md         # ★ Current master plan: bugs, stack decision, dual-engine design
 ├── reference/                   # Read-only golden material — never modify
 │   ├── original-app/               # SelfishNetv0.2-beta_vista.exe + its DLLs, npf.sys, docs
