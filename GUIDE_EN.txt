@@ -1,0 +1,203 @@
+﻿SELFISHNET v2 - HOW IT WORKS
+A plain-language guide to what this app does and how it does it.
+
+--------------------------------------------------------------------
+1. WHAT THIS APP DOES
+--------------------------------------------------------------------
+SelfishNet v2 is a LAN (local network) traffic controller for Windows.
+From one PC on your network you can:
+
+  - See the devices connected to your local network (IP, MAC, name).
+  - Limit how fast each device can download and upload.
+  - Block a device's traffic completely.
+  - Watch live bandwidth charts for the whole network and per device.
+
+It works at a low level: instead of configuring the router, the app
+temporarily convinces the other devices to send their traffic through
+your computer. Your computer then forwards that traffic at the speed
+you chose. When you press Stop (or close the app), everything is
+restored.
+
+Typical uses: testing how an app behaves on a slow connection,
+limiting a guest device, or learning how networks work. Only use it on
+networks you own or are authorized to test.
+
+--------------------------------------------------------------------
+2. THE CORE IDEA: ARP AND THE "MAN IN THE MIDDLE"
+--------------------------------------------------------------------
+Inside a LAN, devices do not talk by IP address alone. They need the
+hardware address (MAC) of the destination. The protocol that maps
+"IP address -> MAC address" is called ARP.
+
+When a computer wants to send something to the router, it asks the
+LAN: "Who has 192.168.1.1? Tell me your MAC." The router answers, and
+the computer remembers that answer in its ARP cache for a short time.
+
+ARP was designed in a simpler era and has no authentication: any
+device can answer, and most systems simply believe the latest answer.
+
+SelfishNet uses that. For each device you choose, it sends two small,
+fake ARP answers:
+
+  1. To the device:  "The router's MAC is MY MAC."
+  2. To the router:  "That device's MAC is MY MAC."
+
+Now both sides send their traffic to your computer instead of directly
+to each other. Your computer is in the middle. That is why this
+technique is called ARP spoofing, and the position is called a
+man-in-the-middle.
+
+This app repeats those fake answers regularly (every 2 seconds on the
+Modern engine, every 5 seconds on the Legacy engine) because devices
+refresh their ARP caches. If the app stops, devices eventually go back
+to the truth on their own, but the app also restores everything
+immediately (see section 6).
+
+--------------------------------------------------------------------
+3. HOW TRAFFIC IS FORWARDED AND LIMITED
+--------------------------------------------------------------------
+While the app is in the middle, it receives the traffic it tricked the
+devices into sending. For every packet it decides:
+
+  Download (router -> device):
+    The packet arrived from the router and is addressed to a device we
+    control. If the device is blocked, or over its limit, the packet
+    is dropped. Otherwise the app rewrites the packet's destination
+    MAC to the real device and sends it on its way.
+
+  Upload (device -> router):
+    The packet came from a controlled device. Same rule: drop if
+    blocked or over the limit; otherwise rewrite the destination MAC
+    to the real router and forward it.
+
+  Traffic for your own PC:
+    Counted in the statistics, never forwarded.
+
+Two engines do this differently:
+
+  LEGACY ENGINE
+    A faithful port of the original 2007 program. Its limit is a hard
+    1-second window: at the start of each second the device gets its
+    full allowance; when it is used up, further packets are dropped
+    until the next second. Simple and predictable, but bursty.
+
+  MODERN ENGINE (default)
+    Same spoofing and forwarding, smoother shaping. It uses a "token
+    bucket": the allowance refills continuously (like a bucket filling
+    with drops), and a packet is sent only if there is enough in the
+    bucket. This avoids the on/off bursts of the old method. It also
+    understands VLAN-tagged traffic and reacts instantly if a device
+    tries to re-learn the real router behind our back.
+
+You can switch engines at any time from the toolbar. The app stops
+shaping, repairs the network, starts the other engine and resumes.
+Devices, limits and names are kept.
+
+Limits are entered in KByte/s or KBit/s (toggle in the toolbar);
+0 means unlimited. Internally everything is stored in bytes per second,
+so changing units never changes your limits.
+
+--------------------------------------------------------------------
+4. WHAT THE APP READS (AND WHAT IT DOES NOT)
+--------------------------------------------------------------------
+The app reads packet headers to learn addresses and measure speeds.
+It does not decrypt traffic, does not store the content of packets,
+and does not log websites. What it keeps on disk is only:
+
+  - Your settings (language, theme, units, last adapter, engine).
+  - Device names and limits, remembered by MAC address, so they come
+    back next time.
+
+Both files live in %AppData%\SelfishNetV2\.
+
+--------------------------------------------------------------------
+5. DEVICE DISCOVERY
+--------------------------------------------------------------------
+When it opens, and then quietly every 60 seconds, the app sends ARP
+requests for every address in your subnet ("who is there?") and
+listens for the answers. It also learns passively from the ARP traffic
+that is already happening, so most new devices appear without any
+action. The Discover button forces a scan immediately. Names come from
+reverse DNS and can be renamed by double-clicking (stored by MAC, so
+a new IP does not lose the name).
+
+--------------------------------------------------------------------
+6. LEAVING THE NETWORK CLEAN (HEALING)
+--------------------------------------------------------------------
+Your devices' ARP caches still point at your computer when you stop.
+The app fixes that by sending genuine ARP messages with the real
+addresses:
+
+  - 35 pairs of unicast corrections (device <-> router) per device.
+  - 3 broadcast announcements for the router and 3 for each device,
+    so even machines that never answered are corrected.
+
+It remembers every device it actually poisoned, independently of the
+checkboxes, so it never "forgets" to heal a device: unchecking a
+device mid-session heals it immediately, and stopping, switching
+engines, changing adapters or closing the app all run the same repair.
+
+If the app is force-killed (Task Manager, power loss), it cannot heal.
+That is not permanent: ARP entries expire on their own within seconds
+to a few minutes, or immediately when a device asks again. A normal
+Stop or Close always heals first.
+
+--------------------------------------------------------------------
+7. WHAT IT NEEDS TO RUN
+--------------------------------------------------------------------
+  - Windows 10 or 11. Builds are provided for 64-bit and 32-bit
+    Windows (use the x64 one on a modern PC).
+  - Administrator rights: sending raw network packets requires it.
+    The app asks for elevation when it starts.
+  - Npcap (https://npcap.com) or legacy WinPcap. Npcap is the modern,
+    signed packet driver; the app detects it automatically. This is
+    the only external component - the app itself is one portable exe
+    with no .NET install needed.
+
+--------------------------------------------------------------------
+8. LIMITS AND KNOWN EDGE CASES
+--------------------------------------------------------------------
+  - One network adapter and one subnet at a time.
+  - IPv4 only.
+  - Devices must be on the same local network (same L2 segment).
+  - Upload limiting depends on the device accepting our fake ARP
+    answer. If a device ignores it, its uploads may bypass the limit
+    while downloads still work.
+  - Some Wi-Fi networks use "client isolation" or ARP protection on
+    the router; there, spoofing cannot work at all (the network blocks
+    device-to-device traffic). That is a router setting, not an app
+    bug.
+  - If Windows' own packet forwarding (IPEnableRouter) is enabled, the
+    system may route traffic around the app, so limits may not apply.
+    The app warns you; disable it for full control.
+  - Mesh systems with several gateway MAC addresses are only partially
+    supported (one gateway identity is tracked).
+  - Your own PC's traffic is not limited by the app.
+
+--------------------------------------------------------------------
+9. QUICK START
+--------------------------------------------------------------------
+  1. Run SelfishNetV2.exe and accept the Administrator prompt.
+  2. Choose your network adapter (the one with your LAN gateway).
+  3. Devices appear automatically; use Discover if needed.
+  4. Type a download/upload limit in the grid, or tick Block.
+     Tick/un-tick Spoof to include/exclude a device (all included by
+     default).
+  5. Press Start Shaping. The status dot turns green.
+  6. Press Stop before closing if you want the fastest repair; closing
+     the app heals too.
+
+Tips:
+  - Keep the app open while shaping; closing it stops shaping.
+  - If a limit seems ignored, press Start again after changing it (the
+    engine reads limits live, but a fresh poison round helps stubborn
+    devices).
+  - The Legacy/Modern switch is the fastest way to compare behavior.
+
+--------------------------------------------------------------------
+10. SAFETY AND LEGAL NOTE
+--------------------------------------------------------------------
+Redirecting another device's traffic is intrusive. Use this only on
+networks you own or have explicit permission to test. The authors take
+no responsibility for misuse. The app always tries to restore the
+network to its original state when stopped.

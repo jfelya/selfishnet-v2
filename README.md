@@ -3,6 +3,13 @@
 A from-scratch rebuild of the classic SelfishNet LAN bandwidth controller (ARP spoofing + traffic
 shaping), shipped as a **single portable Windows executable**.
 
+## User guide (plain-language, how it works under the hood)
+
+| Language | File |
+|---|---|
+| English | [`GUIDE_EN.txt`](GUIDE_EN.txt) |
+| Español (Latinoamérica) | [`GUIDE_ES.txt`](GUIDE_ES.txt) |
+
 ## Status — feature-complete rebuild (v2.0.0)
 
 | Area | State |

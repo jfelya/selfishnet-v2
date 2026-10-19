@@ -1,0 +1,214 @@
+﻿SELFISHNET v2 - CÓMO FUNCIONA
+Guía en lenguaje sencillo sobre qué hace esta aplicación y cómo lo hace.
+
+--------------------------------------------------------------------
+1. QUÉ HACE ESTA APLICACIÓN
+--------------------------------------------------------------------
+SelfishNet v2 es un controlador de tráfico para redes locales (LAN) en
+Windows. Desde una PC de tu red puedes:
+
+  - Ver los dispositivos conectados a tu red local (IP, MAC, nombre).
+  - Limitar la velocidad de descarga y subida de cada dispositivo.
+  - Bloquear por completo el tráfico de un dispositivo.
+  - Ver gráficas de ancho de banda en vivo, totales y por dispositivo.
+
+Funciona a bajo nivel: en lugar de configurar el router, la aplicación
+convence temporalmente a los demás dispositivos de enviar su tráfico a
+través de tu computadora. Tu PC reenvía ese tráfico a la velocidad que
+elijas. Al presionar Detener (o cerrar la app), todo se restaura.
+
+Usos típicos: probar cómo se comporta una app con conexión lenta,
+limitar un dispositivo invitado o aprender cómo funcionan las redes.
+Úsala solo en redes propias o autorizadas.
+
+--------------------------------------------------------------------
+2. LA IDEA CENTRAL: ARP Y EL "HOMBRE EN EL MEDIO"
+--------------------------------------------------------------------
+Dentro de una LAN, los dispositivos no se comunican solo por dirección
+IP: necesitan la dirección física (MAC) del destino. El protocolo que
+traduce "dirección IP -> dirección MAC" se llama ARP.
+
+Cuando una computadora quiere enviar algo al router, pregunta a la red:
+"¿Quién tiene 192.168.1.1? Dime su MAC". El router responde y la
+computadora guarda esa respuesta en su caché ARP por un tiempo corto.
+
+ARP se diseñó en una época más simple y no tiene autenticación:
+cualquier dispositivo puede responder y la mayoría de los sistemas
+simplemente cree la última respuesta.
+
+SelfishNet aprovecha eso. Por cada dispositivo que eliges, envía dos
+pequeñas respuestas ARP falsas:
+
+  1. Al dispositivo:  "La MAC del router es MI MAC."
+  2. Al router:       "La MAC de ese dispositivo es MI MAC."
+
+Ahora ambos lados envían su tráfico a tu computadora en lugar de
+hacerlo directamente entre ellos. Tu PC queda en el medio. Por eso la
+técnica se llama envenenamiento ARP (ARP spoofing) y la posición se
+llama hombre en el medio (man-in-the-middle).
+
+La app repite esas respuestas falsas con regularidad (cada 2 segundos
+en el motor Moderno, cada 5 segundos en el motor Legacy) porque los
+dispositivos renuevan sus cachés ARP. Si la app se detiene, los
+dispositivos vuelven a la verdad por sí solos, pero además la app
+restaura todo de inmediato (ver sección 6).
+
+--------------------------------------------------------------------
+3. CÓMO SE REENVÍA Y SE LIMITA EL TRÁFICO
+--------------------------------------------------------------------
+Mientras la app está en el medio, recibe el tráfico que engañó a los
+dispositivos para que le enviasen. Por cada paquete decide:
+
+  Descarga (router -> dispositivo):
+    El paquete llegó del router y va dirigido a un dispositivo que
+    controlamos. Si está bloqueado o superó su límite, se descarta.
+    Si no, la app reescribe la MAC de destino con la MAC real del
+    dispositivo y lo envía.
+
+  Subida (dispositivo -> router):
+    El paquete salió de un dispositivo controlado. Misma regla:
+    descartar si está bloqueado o superó el límite; si no, reescribir
+    la MAC de destino con la del router real y reenviarlo.
+
+  Tráfico hacia tu propia PC:
+    Se cuenta en las estadísticas, nunca se reenvía.
+
+Dos motores lo hacen de forma distinta:
+
+  MOTOR LEGACY
+    Un port fiel del programa original de 2007. Su límite es una
+    ventana fija de 1 segundo: al inicio de cada segundo el
+    dispositivo recibe toda su cuota; cuando la agota, los paquetes
+    siguientes se descartan hasta el próximo segundo. Simple y
+    predecible, pero a ráfagas.
+
+  MOTOR MODERNO (predeterminado)
+    El mismo spoofing y reenvío, con un control más suave. Usa un
+    "balde de fichas" (token bucket): la cuota se recarga de forma
+    continua (como un balde que se llena gota a gota) y un paquete se
+    envía solo si hay suficientes fichas. Así se evitan las ráfagas de
+    encendido/apagado del método antiguo. Además entiende tráfico con
+    etiquetas VLAN y reacciona al instante si un dispositivo intenta
+    volver a aprender el router real a nuestras espaldas.
+
+Puedes cambiar de motor en cualquier momento desde la barra superior.
+La app detiene el control, repara la red, inicia el otro motor y
+continúa. Los dispositivos, límites y nombres se conservan.
+
+Los límites se escriben en KByte/s o KBit/s (se cambia en la barra
+superior); 0 significa ilimitado. Internamente todo se guarda en
+bytes por segundo, así que cambiar de unidad nunca cambia tus límites.
+
+--------------------------------------------------------------------
+4. QUÉ LEE LA APP (Y QUÉ NO)
+--------------------------------------------------------------------
+La app lee las cabeceras de los paquetes para conocer direcciones y
+medir velocidades. No descifra tráfico, no guarda el contenido de los
+paquetes y no registra sitios web. En disco solo guarda:
+
+  - Tus ajustes (idioma, tema, unidades, último adaptador, motor).
+  - Nombres y límites de dispositivos, recordados por dirección MAC,
+    para que vuelvan la próxima vez.
+
+Ambos archivos viven en %AppData%\SelfishNetV2\.
+
+--------------------------------------------------------------------
+5. DESCUBRIMIENTO DE DISPOSITIVOS
+--------------------------------------------------------------------
+Al abrirse, y luego en silencio cada 60 segundos, la app envía
+peticiones ARP a cada dirección de tu subred ("¿quién está ahí?") y
+escucha las respuestas. También aprende de forma pasiva del tráfico
+ARP que ya ocurre, así que la mayoría de los dispositivos nuevos
+aparecen sin hacer nada. El botón Descubrir fuerza un escaneo
+inmediato. Los nombres provienen de DNS inverso y se pueden cambiar
+con doble clic (se guardan por MAC, así que una IP nueva no pierde el
+nombre).
+
+--------------------------------------------------------------------
+6. DEJAR LA RED LIMPIA (REPARACIÓN)
+--------------------------------------------------------------------
+Las cachés ARP de tus dispositivos siguen apuntando a tu computadora
+cuando detienes la app. La app lo corrige enviando mensajes ARP
+genuinos con las direcciones reales:
+
+  - 35 pares de correcciones unicast (dispositivo <-> router) por
+    dispositivo.
+  - 3 anuncios broadcast para el router y 3 por cada dispositivo, para
+    corregir incluso a máquinas que nunca respondieron.
+
+La app recuerda cada dispositivo que realmente envenenó, sin importar
+las casillas, así que nunca "olvida" reparar uno: desmarcar un
+dispositivo a mitad de sesión lo repara de inmediato, y detener,
+cambiar de motor, cambiar de adaptador o cerrar la app ejecutan la
+misma reparación.
+
+Si la app se cierra a la fuerza (Administrador de tareas, corte de
+luz), no puede reparar. No es permanente: las entradas ARP caducan
+solas en segundos o pocos minutos, o de inmediato cuando un
+dispositivo vuelve a preguntar. Un Detener o Cerrar normal siempre
+repara primero.
+
+--------------------------------------------------------------------
+7. QUÉ NECESITA PARA FUNCIONAR
+--------------------------------------------------------------------
+  - Windows 10 u 11. Hay una versión para 64 bits y otra para 32 bits
+    (usa la de x64 en una PC moderna).
+  - Permisos de Administrador: enviar paquetes de red crudos los
+    requiere. La app los pide al iniciar.
+  - Npcap (https://npcap.com) o el antiguo WinPcap. Npcap es el
+    controlador moderno y firmado; la app lo detecta automáticamente.
+    Es el único componente externo: la app en sí es un solo .exe
+    portátil que no necesita instalar .NET.
+
+--------------------------------------------------------------------
+8. LÍMITES Y CASOS ESPECIALES CONOCIDOS
+--------------------------------------------------------------------
+  - Un adaptador de red y una subred a la vez.
+  - Solo IPv4.
+  - Los dispositivos deben estar en la misma red local (mismo segmento
+    de capa 2).
+  - Limitar la subida depende de que el dispositivo acepte nuestra
+    respuesta ARP falsa. Si la ignora, sus subidas pueden saltarse el
+    límite mientras las descargas siguen funcionando.
+  - Algunas redes Wi-Fi usan "aislamiento de clientes" o protección
+    ARP en el router; ahí el spoofing no puede funcionar (la red
+    bloquea el tráfico entre dispositivos). Es una configuración del
+    router, no un fallo de la app.
+  - Si el reenvío de paquetes de Windows (IPEnableRouter) está
+    activado, el sistema puede desviar el tráfico y los límites no se
+    aplican. La app te avisa; desactívalo para tener control total.
+  - Los sistemas mesh con varias direcciones MAC de puerta de enlace
+    solo están soportados parcialmente (se sigue una sola identidad de
+    router).
+  - El tráfico de tu propia PC no se limita desde la app.
+
+--------------------------------------------------------------------
+9. INICIO RÁPIDO
+--------------------------------------------------------------------
+  1. Ejecuta SelfishNetV2.exe y acepta el aviso de Administrador.
+  2. Elige tu adaptador de red (el que tiene la puerta de enlace de tu
+     LAN).
+  3. Los dispositivos aparecen solos; usa Descubrir si hace falta.
+  4. Escribe un límite de descarga/subida en la tabla, o marca
+     Bloquear. Marca/desmarca Interceptar para incluir/excluir un
+     dispositivo (todos incluidos por defecto).
+  5. Presiona Iniciar Control. El punto de estado se pone verde.
+  6. Presiona Detener antes de cerrar si quieres la reparación más
+     rápida; cerrar también repara.
+
+Consejos:
+  - Mantén la app abierta mientras controlas; cerrarla detiene el
+    control.
+  - Si un límite parece ignorarse, vuelve a Iniciar después de
+    cambiarlo (el motor lee los límites en vivo, pero una nueva ronda
+    de envenenamiento ayuda con dispositivos tercos).
+  - El interruptor Legacy/Moderno es la forma más rápida de comparar
+    comportamientos.
+
+--------------------------------------------------------------------
+10. NOTA DE SEGURIDAD Y LEGALIDAD
+--------------------------------------------------------------------
+Redirigir el tráfico de otro dispositivo es intrusivo. Úsalo solo en
+redes propias o con permiso explícito para probar. Los autores no se
+hacen responsables del mal uso. La app siempre intenta devolver la red
+a su estado original al detenerse.
