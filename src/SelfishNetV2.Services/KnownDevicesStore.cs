@@ -27,6 +27,7 @@ public sealed class KnownDevicesStore
         public bool Blocked { get; set; }
         public bool Targeted { get; set; } = true;
         public string LastIp { get; set; } = "";
+        public string SystemName { get; set; } = "";
         public DateTime LastSeenUtc { get; set; }
     }
 
@@ -67,20 +68,82 @@ public sealed class KnownDevicesStore
     private static string KeyOf(ulong macKey) => Normalize(NetKeys.FormatMac(macKey));
     private static bool Storable(ulong macKey) => macKey != 0;
 
-    /// <summary>Applies remembered name/caps/block/target to a freshly seen device. Returns true if known.</summary>
+    /// <summary>
+    /// Applies remembered name/caps/block/target to a freshly seen device.
+    /// Exact MAC first; if the MAC is unknown (phones rotate their Wi-Fi MAC, or the
+    /// NIC was replaced) it inherits the settings of a known device last seen at the
+    /// same IP. Returns true when settings were applied.
+    /// </summary>
     public bool ApplyTo(Device dev)
     {
         if (!Storable(dev.MacKey)) return false;
         lock (_lock)
         {
-            if (!_map.TryGetValue(KeyOf(dev.MacKey), out var e)) return false;
-            if (!string.IsNullOrWhiteSpace(e.CustomName)) dev.CustomName = e.CustomName;
-            dev.CapDownBytesPerSec = e.DownCapBytes;
-            dev.CapUpBytesPerSec = e.UpCapBytes;
-            dev.Redirect = !e.Blocked;
-            dev.Targeted = e.Targeted;
+            if (_map.TryGetValue(KeyOf(dev.MacKey), out var exact))
+            {
+                Apply(dev, exact);
+                dev.KnownSettingsApplied = true;
+                return true;
+            }
+
+            string ip = NetKeys.FormatIp(dev.IpKey);
+            Entry? best = null;
+            bool bestHasSettings = false;
+            foreach (var candidate in _map.Values)
+            {
+                if (string.IsNullOrEmpty(candidate.LastIp) ||
+                    !string.Equals(candidate.LastIp, ip, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                bool hasSettings = candidate.DownCapBytes != 0 || candidate.UpCapBytes != 0 ||
+                                   candidate.Blocked || !string.IsNullOrWhiteSpace(candidate.CustomName);
+                if (best == null ||
+                    (hasSettings && !bestHasSettings) ||
+                    (hasSettings == bestHasSettings && candidate.LastSeenUtc > best.LastSeenUtc))
+                {
+                    best = candidate;
+                    bestHasSettings = hasSettings;
+                }
+            }
+
+            if (best == null) return false;
+            Apply(dev, best);
+            dev.KnownSettingsApplied = true;
             return true;
         }
+    }
+
+    /// <summary>
+    /// Second-chance match by resolved hostname: covers a device whose IP *and*
+    /// randomized MAC both changed. Safe to call repeatedly; it only acts while the
+    /// device has not already inherited settings.
+    /// </summary>
+    public bool TryApplyByName(Device dev, string systemName)
+    {
+        if (dev.KnownSettingsApplied || string.IsNullOrWhiteSpace(systemName)) return false;
+        lock (_lock)
+        {
+            foreach (var candidate in _map.Values)
+            {
+                if (!string.IsNullOrWhiteSpace(candidate.SystemName) &&
+                    string.Equals(candidate.SystemName, systemName, StringComparison.OrdinalIgnoreCase))
+                {
+                    Apply(dev, candidate);
+                    dev.KnownSettingsApplied = true;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static void Apply(Device dev, Entry e)
+    {
+        if (!string.IsNullOrWhiteSpace(e.CustomName)) dev.CustomName = e.CustomName;
+        dev.CapDownBytesPerSec = e.DownCapBytes;
+        dev.CapUpBytesPerSec = e.UpCapBytes;
+        dev.Redirect = !e.Blocked;
+        dev.Targeted = e.Targeted;
     }
 
     public void Update(Device dev)
@@ -95,6 +158,9 @@ public sealed class KnownDevicesStore
             e.Blocked = !dev.Redirect;
             e.Targeted = dev.Targeted;
             e.LastIp = NetKeys.FormatIp(dev.IpKey);
+            if (!string.IsNullOrWhiteSpace(dev.Name) &&
+                !string.Equals(dev.Name, NetKeys.FormatIp(dev.IpKey), StringComparison.Ordinal))
+                e.SystemName = dev.Name;
             e.LastSeenUtc = DateTime.UtcNow;
             Save();
         }

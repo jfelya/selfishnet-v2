@@ -118,11 +118,14 @@ internal sealed unsafe class WpcapCapture : IPcapCapture
     public int Send(ReadOnlySpan<byte> frame)
     {
         if (_disposed || _handle == IntPtr.Zero) return -1;
+        int rc;
         fixed (byte* p = frame)
         {
             lock (_sendGate) // serialize concurrent sends on this handle
-                return _api.SendPacket(_handle, p, frame.Length);
+                rc = _api.SendPacket(_handle, p, frame.Length);
         }
+        if (rc != 0) _lastError = ReadError(); // keep the reason for diagnostics
+        return rc;
     }
 
     public ReceiveResult Receive(out PacketView view)

@@ -79,6 +79,12 @@ project root for convenience. No .NET install needed — copy one anywhere.
 - **Crash-resistant under bursts:** capture parsing is zero-allocation over the native buffer,
   the forwarding buffer is bounds-checked and reused, and per-packet exceptions can never kill
   the capture thread (regression-tested with a 10 000-frame 1514-byte burst).
+- **Survives MAC randomization and DHCP churn:** if a phone rotates its Wi-Fi MAC, saved limits
+  and names are matched by MAC, then by last IP, then by hostname — the cap follows the device
+  instead of getting stuck on an old entry.
+- **No silent failures:** a gateway-less adapter is rejected with a clear message (instead of
+  "starting" without spoofing), packet-send failures are surfaced, and *About* shows live
+  diagnostics (adapter, gateway MAC, state, targets, forwarded/dropped, send failures).
 
 ## Build / test (developer)
 

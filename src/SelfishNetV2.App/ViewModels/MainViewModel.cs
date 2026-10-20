@@ -292,7 +292,24 @@ public sealed class MainViewModel : ObservableObject
         string runtime = RuntimeInformation.FrameworkDescription.Trim();
         string engine = EngineBadge.Length > 0 ? EngineBadge : "-";
         string env = LocalizationManager.Get("AboutEnv", system, runtime, engine);
-        MessageRequested?.Invoke(LocalizationManager.Get("AboutText") + env,
+
+        // Live traffic-control diagnostics: lets the user verify the gateway/state
+        // (and makes silent failures visible) without any log file.
+        string diag = "";
+        if (_orch?.Session is { } session && _orch.CurrentAdapter is { } adapter)
+        {
+            string gwMac = "-";
+            if (adapter.GatewayIpKey != 0 && _orch.Catalog.TryGetByIp(adapter.GatewayIpKey, out var gw) && gw.HasKnownMac)
+                gwMac = gw.MacText;
+            diag = LocalizationManager.Get("AboutDiagAdapter",
+                adapter.Name, NetKeys.FormatIp(adapter.LocalIpKey), adapter.MacText,
+                adapter.GatewayIpKey == 0 ? "-" : NetKeys.FormatIp(adapter.GatewayIpKey), gwMac);
+            diag += LocalizationManager.Get("AboutDiagState",
+                session.State, _orch.Catalog.Count, _orch.Catalog.SpoofTargets().Count,
+                session.ForwardedDown, session.ForwardedUp, session.Dropped, session.SpoofSendFailures);
+        }
+
+        MessageRequested?.Invoke(LocalizationManager.Get("AboutText") + env + diag,
             LocalizationManager.Get("BtnAbout"), false);
     }
 
@@ -310,6 +327,8 @@ public sealed class MainViewModel : ObservableObject
         string text = e.Kind switch
         {
             EngineErrorKind.GatewayMacUnknown => LocalizationManager.Get("MsgGatewayUnknown"),
+            EngineErrorKind.NoGateway => LocalizationManager.Get("MsgNoGateway"),
+            EngineErrorKind.SendFailed => LocalizationManager.Get("MsgSendFailed", e.Detail),
             EngineErrorKind.AbiMismatch => LocalizationManager.Get("MsgAbiError", e.Detail),
             EngineErrorKind.DriverOpen => LocalizationManager.Get("MsgDriverError", e.Detail),
             EngineErrorKind.ReceiveError => LocalizationManager.Get("MsgDriverError", e.Detail),

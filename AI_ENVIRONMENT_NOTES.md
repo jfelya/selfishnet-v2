@@ -1,4 +1,4 @@
-# SelfishNet v2 — Project Context (single source of truth)
+﻿# SelfishNet v2 — Project Context (single source of truth)
 
 > **Read this first.** Git history was intentionally rewritten on 2026-10-19 to purge
 > ~200 MB of committed binaries, so this file — not the commit log — carries the project
@@ -28,7 +28,7 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 | Item | State |
 |---|---|
 | Build | `dotnet build src/SelfishNetV2.sln -c Release` → 0 warnings, 0 errors |
-| Tests | **85/85 green** in ~6 s (no hardware, no admin) |
+| Tests | **92/92 green** in ~7 s (no hardware, no admin) |
 | Field test | Real LAN: both engines limited a phone; runtime engine switch worked; healing worked |
 | Artifacts | `SelfishNetV2-x64.exe` 68.5 MB · `-x86.exe` 63.3 MB (project root) |
 | OS support | Windows 10 1607 → 22H2 and all Windows 11 releases; floor declared and guard-tested |
@@ -39,7 +39,7 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 
 ```powershell
 dotnet build src/SelfishNetV2.sln -c Release      # build everything
-dotnet test  src/SelfishNetV2.sln -c Release      # 85 tests, no hardware/admin needed
+dotnet test  src/SelfishNetV2.sln -c Release      # 92 tests, no hardware/admin needed
 src\publish.bat                                    # → publish\{x64,x86}\SelfishNetV2.exe
 tools\clean.cmd                                    # reclaim build output (~1 GB after publishing)
 ```
@@ -114,7 +114,7 @@ SelfishNet v2/
 │   ├── SelfishNetV2.Engines/        #   IEngineSession, EngineSessionBase, LegacyEngine, ModernEngine
 │   ├── SelfishNetV2.Services/       #   Localization, Settings, KnownDevices, EngineOrchestrator, formatter
 │   ├── SelfishNetV2.App/            #   WPF shell: Themes/, Theming/, Controls/, ViewModels/, Views/
-│   ├── SelfishNetV2.Tests/          #   85 tests
+│   ├── SelfishNetV2.Tests/          #   92 tests
 │   ├── Directory.Build.targets      #   OS floor + WinRT projection exclusion
 │   └── publish.bat                  #   2-arch self-contained publish (x64 + x86)
 ├── tools/                           # clean.cmd/ps1 + README
@@ -133,6 +133,8 @@ SelfishNet v2/
 | Healing registry | The prototype healed only currently-ticked devices, orphaning caches |
 | Reactive poison + 2 s cadence | Fixes the observed "device escaped shaping" race |
 | `asInvoker` + access probe | Admin is only needed when Npcap restricts the driver; avoids a UAC prompt otherwise |
+| Settings follow rotated MACs | Phones randomize their Wi-Fi MAC; caps/names match by MAC → last IP → hostname so limits follow the device |
+| Fail-closed shaping | A gateway-less adapter is rejected (`MsgNoGateway`) and send failures are surfaced — never a silent "running but not spoofing" state |
 | Two portable exes versioned at the root | Clone-and-run convenience; a deliberate ~130 MB-per-rebuild trade-off (build output stays ignored) |
 | Spanish + dark defaults, maximized start | User preference |
 | Win7/XP deferred | Documented options in `docs/PENDING.md` (net48 and net40 forks) |
@@ -153,7 +155,7 @@ Rules adopted (keep them):
 6. Failure paths are tested on `LoopbackDriver` — no hardware required.
 7. Promises stay scoped (healing is best-effort; say so).
 
-## 8. Test map (85 tests)
+## 8. Test map (92 tests)
 
 | File | Guards |
 |---|---|
@@ -163,8 +165,9 @@ Rules adopted (keep them):
 | `DeviceCatalogTests` | Dual index, MAC re-indexing, sorting, spoof-target filtering |
 | `TokenBucketTests` | Unlimited rate, sustained rate, deficit rule, clamp-not-refill |
 | `SpeedFormatterTests` | KByte/s ↔ KBit/s conversion and formatting rules |
-| `EngineIntegrationTests` | Learning, burst shapes, forwarding/rewriting, blocking, caps, exact 35-pair healing, engine swap, adapter-switch healing |
+| `EngineIntegrationTests` | Learning, burst shapes, forwarding/rewriting, blocking, caps, exact 35-pair healing, engine swap, adapter-switch healing, no-gateway hard fail |
 | `EngineRobustnessTests` | Reactive poison, broadcast healing, untarget heal, close retry, 10 000-frame burst, auto-scan, close-after-stop silence |
+| `KnownDevicesStoreTests` | Settings follow rotated MACs: exact MAC → last IP → hostname; no override once applied |
 | `ShutdownHammerTests` | 300 start/stop/dispose cycles; engine open/close under load |
 
 ## 9. Environment and prerequisites
@@ -194,6 +197,10 @@ Rules adopted (keep them):
 8. **Clone-and-run** — the two portable exes (x64/x86) were re-added to the repository root as
    versioned deliverables at the user's request; ARM support was dropped. The app now shows a
    "Download Npcap" button when the only prerequisite is missing.
+9. **Field report "it stopped working"** — live diagnosis showed the app still spoofs and counts
+   correctly; the real cause was a phone rotating its Wi-Fi MAC, so the saved cap stayed on the old
+   MAC entry and the new entry was unlimited. Fixed with identity fallback (MAC → last IP →
+   hostname), plus fail-closed shaping (no gateway), send-failure reporting and About diagnostics.
 
 ## 11. Backlog (see `docs/PENDING.md`)
 

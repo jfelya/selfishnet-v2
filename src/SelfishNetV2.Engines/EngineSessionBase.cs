@@ -52,6 +52,8 @@ public abstract class EngineSessionBase : IEngineSession
     private long _lastAutoScanTicks;
 
     private long _forwardedDown, _forwardedUp, _dropped;
+    private long _spoofSendFailures;
+    private int _sendFailureReported;
     private volatile EngineRunState _state = EngineRunState.Closed;
 
     public abstract EngineKind Kind { get; }
@@ -61,6 +63,7 @@ public abstract class EngineSessionBase : IEngineSession
     public long ForwardedDown => Interlocked.Read(ref _forwardedDown);
     public long ForwardedUp => Interlocked.Read(ref _forwardedUp);
     public long Dropped => Interlocked.Read(ref _dropped);
+    public long SpoofSendFailures => Interlocked.Read(ref _spoofSendFailures);
 
     public event EventHandler<EngineErrorEventArgs>? Error;
     public event EventHandler? StateChanged;
@@ -101,6 +104,8 @@ public abstract class EngineSessionBase : IEngineSession
         {
             if (_state != EngineRunState.Closed) CloseCore(healIfNeeded: true);
             _poisoned.Clear(); // any unhealed claims belong to the previous adapter/LAN
+            Interlocked.Exchange(ref _spoofSendFailures, 0);
+            Interlocked.Exchange(ref _sendFailureReported, 0);
             try
             {
                 if (!_abiChecked)
@@ -181,7 +186,8 @@ public abstract class EngineSessionBase : IEngineSession
     public void StartDiscovery()
     {
         var adapter = Adapter;
-        if (IsDiscovering || adapter == null || _arp == null) return;
+        var arp = _arp;
+        if (IsDiscovering || adapter == null || arp == null) return;
         IsDiscovering = true;
         Task.Run(() =>
         {
@@ -193,7 +199,7 @@ public abstract class EngineSessionBase : IEngineSession
                     if (!IsDiscovering) break;
                     if (target == adapter.LocalIpKey) continue;
                     ArpFrameBuilder.BuildRequest(buf, adapter.MacKey, adapter.LocalIpKey, target);
-                    _arp.Send(buf);
+                    SendFrame(arp, buf);
                     Thread.Sleep(5); // original pacing: one ARP request per ~5 ms
                 }
             }
@@ -262,9 +268,9 @@ public abstract class EngineSessionBase : IEngineSession
             for (int i = 0; i < 2; i++)
             {
                 ArpFrameBuilder.BuildPoison(buf, adapter.MacKey, adapter.GatewayIpKey, victimMac, victimIpKey);
-                arp.Send(buf);
+                SendFrame(arp, buf);
                 ArpFrameBuilder.BuildPoison(buf, adapter.MacKey, victimIpKey, routerMac, adapter.GatewayIpKey);
-                arp.Send(buf);
+                SendFrame(arp, buf);
             }
         }
         catch { /* best effort */ }
@@ -281,6 +287,15 @@ public abstract class EngineSessionBase : IEngineSession
             return false;
         }
         if (_state == EngineRunState.Shaping) return true;
+
+        // A gateway is required for shaping. Without this guard the app would start
+        // capturing/counting but silently never spoof (the old behaviour on VPN or
+        // link-local adapters), which looks exactly like "the app does nothing".
+        if (adapter.GatewayIpKey == 0)
+        {
+            RaiseError(EngineErrorKind.NoGateway, adapter.Name);
+            return false;
+        }
 
         // M2 hard gate: never shape/forward without a known gateway MAC.
         if (adapter.GatewayIpKey != 0 && !GatewayMacKnown())
@@ -377,18 +392,18 @@ public abstract class EngineSessionBase : IEngineSession
             _poisoned[v.IpKey] = v.MacKey;
             // 1. to victim: "router is at us"
             ArpFrameBuilder.BuildPoison(buf, adapter.MacKey, adapter.GatewayIpKey, v.MacKey, v.IpKey);
-            arp.Send(buf);
+            SendFrame(arp, buf);
             // 2. to router: "victim is at us"
             ArpFrameBuilder.BuildPoison(buf, adapter.MacKey, v.IpKey, routerMac, adapter.GatewayIpKey);
-            arp.Send(buf);
+            SendFrame(arp, buf);
             // 3. self-refresh: our listener re-learns the TRUE router MAC every round
             ArpFrameBuilder.BuildSelfRefresh(buf, adapter.MacKey, adapter.LocalIpKey, routerMac, adapter.GatewayIpKey);
-            arp.Send(buf);
+            SendFrame(arp, buf);
             // 4. inert codegen leftover — Legacy only, for behavioral parity
             if (SendInertSelfFrame)
             {
                 ArpFrameBuilder.BuildInertSelf(buf, adapter.MacKey, adapter.LocalIpKey, v.MacKey, v.IpKey);
-                arp.Send(buf);
+                SendFrame(arp, buf);
             }
         }
     }
@@ -482,10 +497,21 @@ public abstract class EngineSessionBase : IEngineSession
         }
     }
 
-    private static void SendWithRetry(PcapCaptureSession session, ReadOnlySpan<byte> frame)
+    private void SendWithRetry(PcapCaptureSession session, ReadOnlySpan<byte> frame)
     {
-        if (session.Send(frame) != 0)
-            session.Send(frame); // single retry; tiny frames rarely fail
+        if (!SendFrame(session, frame))
+            SendFrame(session, frame); // single retry; tiny frames rarely fail
+    }
+
+    /// <summary>Sends one frame and records/reports driver rejections (surfaced in the UI
+    /// and in About diagnostics instead of failing silently).</summary>
+    private bool SendFrame(PcapCaptureSession session, ReadOnlySpan<byte> frame)
+    {
+        if (session.Send(frame) == 0) return true;
+        Interlocked.Increment(ref _spoofSendFailures);
+        if (Interlocked.Exchange(ref _sendFailureReported, 1) == 0)
+            RaiseError(EngineErrorKind.SendFailed, session.Capture.LastError);
+        return false;
     }
 
     // ================= forwarder (original redirector) =================
@@ -610,7 +636,7 @@ public abstract class EngineSessionBase : IEngineSession
                     try
                     {
                         ArpFrameBuilder.BuildUnicastProbe(_probeBuffer, adapter.MacKey, adapter.LocalIpKey, dev.MacKey, dev.IpKey);
-                        arp.Send(_probeBuffer);
+                        SendFrame(arp, _probeBuffer);
                     }
                     catch { }
                 }
@@ -646,7 +672,8 @@ public abstract class EngineSessionBase : IEngineSession
         {
             Span<byte> buf = stackalloc byte[ArpFrameBuilder.FrameLength];
             ArpFrameBuilder.BuildRequest(buf, adapter.MacKey, adapter.LocalIpKey, targetIpKey);
-            _arp?.Send(buf);
+            var arp = _arp;
+            if (arp != null) SendFrame(arp, buf);
         }
         catch { }
     }

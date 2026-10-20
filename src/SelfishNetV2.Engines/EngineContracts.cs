@@ -13,6 +13,10 @@ public enum EngineErrorKind
     DriverOpen,
     /// <summary>The packet driver denied access (restricted to administrators).</summary>
     AccessDenied,
+    /// <summary>The selected adapter has no default gateway — shaping is impossible.</summary>
+    NoGateway,
+    /// <summary>pcap_sendpacket failed while spoofing/healing.</summary>
+    SendFailed,
     GatewayMacUnknown,
     ReceiveError,
     AbiMismatch,
@@ -41,6 +45,8 @@ public interface IEngineSession : IDisposable
     long ForwardedDown { get; }
     long ForwardedUp { get; }
     long Dropped { get; }
+    /// <summary>Packet sends rejected by the driver during this session (0 = healthy).</summary>
+    long SpoofSendFailures { get; }
 
     event EventHandler<EngineErrorEventArgs>? Error;
     event EventHandler? StateChanged;

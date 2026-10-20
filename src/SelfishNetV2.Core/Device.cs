@@ -56,6 +56,10 @@ public sealed class Device
     public bool Redirect { get => _redirect; set => _redirect = value; }
     public bool Targeted { get => _targeted; set => _targeted = value; }
 
+    /// <summary>True when remembered settings were applied for this session (by MAC,
+    /// last IP or hostname). Prevents a later hostname match from overwriting them.</summary>
+    public bool KnownSettingsApplied { get; set; }
+
     public long TotalDownBytes => Interlocked.Read(ref _totalDown);
     public long TotalUpBytes => Interlocked.Read(ref _totalUp);
     public int DownWindow => Volatile.Read(ref _downWindow);

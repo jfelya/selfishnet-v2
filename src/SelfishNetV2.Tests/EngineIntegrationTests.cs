@@ -89,6 +89,26 @@ public class EngineIntegrationTests
         Assert.Equal(EngineRunState.Idle, engine.State);
     }
 
+    [Theory]
+    [InlineData(EngineKind.Legacy)]
+    [InlineData(EngineKind.Modern)]
+    public async Task StartShaping_WithoutGateway_FailsClosed(EngineKind kind)
+    {
+        // Previously a gateway-less adapter (VPN/link-local) could "start" capturing
+        // without ever spoofing — indistinguishable from a broken app. It must fail.
+        var driver = new LoopbackDriver();
+        var catalog = new DeviceCatalog();
+        using var engine = CreateEngine(kind, catalog, driver);
+        Assert.True(engine.Open(TestAdapter with { GatewayIpKey = 0 }));
+
+        EngineErrorKind? error = null;
+        engine.Error += (_, e) => error = e.Kind;
+
+        Assert.False(await engine.StartShapingAsync());
+        Assert.Equal(EngineErrorKind.NoGateway, error);
+        Assert.Equal(EngineRunState.Idle, engine.State);
+    }
+
     [Fact]
     public async Task SpoofBursts_PoisonBothDirections_WithSelfRefresh()
     {

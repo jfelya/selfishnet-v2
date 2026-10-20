@@ -159,6 +159,8 @@ public sealed class EngineOrchestrator : IDisposable
                 if (string.IsNullOrEmpty(dev.Name) || dev.Name == NetKeys.FormatIp(dev.IpKey))
                 {
                     dev.Name = name;
+                    // Last chance to recover settings for a rotated MAC whose IP also changed.
+                    _known.TryApplyByName(dev, name);
                     _catalog.NotifyUpdated(dev);
                 }
             }
