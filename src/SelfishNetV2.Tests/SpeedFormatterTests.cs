@@ -49,6 +49,14 @@ public class SpeedFormatterTests
     public void FromCapDisplay_Works(decimal display, UnitMode mode, int expected) =>
         Assert.Equal(expected, SpeedFormatter.FromCapDisplay(display, mode));
 
+    [Theory]
+    [InlineData(512L, "512 B")]
+    [InlineData(1024L, "1.0 KByte")]
+    [InlineData(1_048_576L, "1.0 MByte")]
+    [InlineData(1_073_741_824L, "1.00 GByte")]
+    public void FormatTotal_ForCumulativeBytes(long bytes, string expected) =>
+        Assert.Equal(expected, SpeedFormatter.FormatTotal(bytes));
+
     [Fact]
     public void UnitToggle_RoundTrip_DriftBelowTolerance()
     {

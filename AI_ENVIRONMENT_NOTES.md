@@ -206,10 +206,14 @@ Rules adopted (keep them):
    hostname), plus fail-closed shaping (no gateway), send-failure reporting and About diagnostics.
 10. **UX round** — Spoof column removed (all devices shaped by default), Reset-limits button,
     numeric-only limit boxes (empty = 0), taller rows, 4 Hz live speeds, paced/silent healing.
-11. **UI cleanup** — OS-forwarding detection/column/warning removed entirely (user request;
-    `IPEnableRouter` is no longer read), adapter dialog rows sized for two-line text and given
-    the dark title bar, and the numeric editor now inherits the themed TextBox style instead of
-    rendering white (implicit WPF styles do not apply to derived controls).
+11. **UI cleanup** — OS-forwarding detection/column/warning removed entirely (user request),
+    adapter dialog rows sized for two-line text and given the dark title bar, and the numeric
+    editor now inherits the themed TextBox style instead of rendering white (implicit WPF styles
+    do not apply to derived controls).
+12. **About redesign** — the MessageBox was replaced by a proper `AboutWindow`: organized
+    System/Traffic-control sections, larger Medium typography, live diagnostics, a **read-only**
+    OS-forwarding row (IPEnableRouter) with a short explanatory hint, and a "Copy details" button.
+    The OS-forwarding check exists only for this display — nothing warns or blocks on it.
 
 ## 11. Backlog (see `docs/PENDING.md`)
 

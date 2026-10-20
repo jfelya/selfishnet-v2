@@ -285,31 +285,39 @@ public sealed class MainViewModel : ObservableObject
 
     private void ShowAbout()
     {
-        // Environment details make support easy and confirm that the OS is
-        // detected as Windows 10/11 (requires the manifest's supportedOS entry).
-        string system = $"{RuntimeInformation.OSDescription.Trim()} ({RuntimeInformation.ProcessArchitecture})";
-        string runtime = RuntimeInformation.FrameworkDescription.Trim();
-        string engine = EngineBadge.Length > 0 ? EngineBadge : "-";
-        string env = LocalizationManager.Get("AboutEnv", system, runtime, engine);
+        var session = _orch?.Session;
+        var adapter = _orch?.CurrentAdapter;
 
-        // Live traffic-control diagnostics: lets the user verify the gateway/state
-        // (and makes silent failures visible) without any log file.
-        string diag = "";
-        if (_orch?.Session is { } session && _orch.CurrentAdapter is { } adapter)
-        {
-            string gwMac = "-";
-            if (adapter.GatewayIpKey != 0 && _orch.Catalog.TryGetByIp(adapter.GatewayIpKey, out var gw) && gw.HasKnownMac)
-                gwMac = gw.MacText;
-            diag = LocalizationManager.Get("AboutDiagAdapter",
-                adapter.Name, NetKeys.FormatIp(adapter.LocalIpKey), adapter.MacText,
-                adapter.GatewayIpKey == 0 ? "-" : NetKeys.FormatIp(adapter.GatewayIpKey), gwMac);
-            diag += LocalizationManager.Get("AboutDiagState",
-                session.State, _orch.Catalog.Count, _orch.Catalog.SpoofTargets().Count,
-                session.ForwardedDown, session.ForwardedUp, session.Dropped, session.SpoofSendFailures);
-        }
+        string gatewayMac = "-";
+        if (adapter != null && adapter.GatewayIpKey != 0 &&
+            _orch!.Catalog.TryGetByIp(adapter.GatewayIpKey, out var gateway) && gateway.HasKnownMac)
+            gatewayMac = gateway.MacText;
 
-        MessageRequested?.Invoke(LocalizationManager.Get("AboutText") + env + diag,
-            LocalizationManager.Get("BtnAbout"), false);
+        string engineName = _orch == null
+            ? "-"
+            : LocalizationManager.Get(_orch.CurrentKind == EngineKind.Modern ? "EngineModern" : "EngineLegacy");
+
+        var info = new AboutInfo(
+            Version: typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "2.0.0",
+            EngineName: engineName,
+            DriverBackend: _orch?.DriverBackend ?? "-",
+            SystemText: $"{RuntimeInformation.OSDescription.Trim()} ({RuntimeInformation.ProcessArchitecture})",
+            RuntimeText: RuntimeInformation.FrameworkDescription.Trim(),
+            AdapterName: adapter?.Name ?? "-",
+            LocalText: adapter == null ? "-" : $"{NetKeys.FormatIp(adapter.LocalIpKey)}  ({adapter.MacText})",
+            GatewayText: adapter == null || adapter.GatewayIpKey == 0 ? "-" : NetKeys.FormatIp(adapter.GatewayIpKey),
+            GatewayMac: gatewayMac,
+            State: session?.State ?? EngineRunState.Closed,
+            Devices: _orch?.Catalog.Count ?? 0,
+            Targets: _orch?.Catalog.SpoofTargets().Count ?? 0,
+            ForwardedDown: session?.ForwardedDown ?? 0,
+            ForwardedUp: session?.ForwardedUp ?? 0,
+            Dropped: session?.Dropped ?? 0,
+            SendFailures: session?.SpoofSendFailures ?? 0,
+            OsForwarding: AdapterService.IsOsForwardingEnabled(),
+            HasSession: session != null);
+
+        new Views.AboutWindow(info) { Owner = Application.Current.MainWindow }.ShowDialog();
     }
 
     // ---------------- engine event handling ----------------

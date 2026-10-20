@@ -45,6 +45,17 @@ public static class SpeedFormatter
     /// <summary>Short label of the current cap unit, e.g. "KByte/s" / "KBit/s".</summary>
     public static string CapUnit(UnitMode mode) => mode == UnitMode.Bytes ? "KByte/s" : "KBit/s";
 
+    /// <summary>Formats a cumulative byte count (not a rate) for diagnostics.</summary>
+    public static string FormatTotal(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes:N0} B";
+        double kb = bytes / 1024.0;
+        if (kb < 1024) return $"{kb:N1} KByte";
+        double mb = kb / 1024.0;
+        if (mb < 1024) return $"{mb:N1} MByte";
+        return $"{mb / 1024.0:N2} GByte";
+    }
+
     public static UnitMode Parse(string? s) =>
         string.Equals(s, "Bits", StringComparison.OrdinalIgnoreCase) ? UnitMode.Bits : UnitMode.Bytes;
 }

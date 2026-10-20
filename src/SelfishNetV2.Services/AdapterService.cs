@@ -1,4 +1,5 @@
 using System.Security.Principal;
+using Microsoft.Win32;
 using SelfishNetV2.Core;
 using SelfishNetV2.Drivers;
 
@@ -29,4 +30,19 @@ public sealed class AdapterService
         catch { return false; }
     }
 
+    /// <summary>
+    /// Read-only status for the About window. Windows' legacy IP forwarding
+    /// (IPEnableRouter) can route traffic around this app's userspace shaper on
+    /// multi-homed machines. The app no longer warns or blocks on it — it is shown
+    /// as information only.
+    /// </summary>
+    public static bool IsOsForwardingEnabled()
+    {
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\Tcpip\Parameters");
+            return key?.GetValue("IPEnableRouter") is int i && i == 1;
+        }
+        catch { return false; }
+    }
 }

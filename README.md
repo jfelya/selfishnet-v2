@@ -84,8 +84,9 @@ project root for convenience. No .NET install needed — copy one anywhere.
   and names are matched by MAC, then by last IP, then by hostname — the cap follows the device
   instead of getting stuck on an old entry.
 - **No silent failures:** a gateway-less adapter is rejected with a clear message (instead of
-  "starting" without spoofing), packet-send failures are surfaced, and *About* shows live
-  diagnostics (adapter, gateway MAC, state, targets, forwarded/dropped, send failures).
+  "starting" without spoofing), packet-send failures are surfaced, and *About* shows organized
+  live diagnostics (adapter, gateway MAC, state, targets, forwarded/dropped, send failures,
+  plus a read-only OS-forwarding check) with a **Copy details** button for support.
 - **Comfort features:** per-device speeds refresh at 4 Hz, limit boxes accept digits only and
   commit empty as 0, and **Reset limits** returns every device to unlimited in one click.
 
