@@ -23,7 +23,6 @@ public partial class MainWindow : Window
         DataContext = vm;
 
         _vm.MessageRequested += OnMessageRequested;
-        _vm.ConfirmRequested += OnConfirmRequested;
         _vm.ChartTick += OnChartTick;
         _vm.UiStringsChanged += ApplyLocalization;
         _vm.ThemeChanged += OnThemeChanged;
@@ -113,9 +112,6 @@ public partial class MainWindow : Window
         MessageBox.Show(this, text, title, MessageBoxButton.OK,
             isError ? MessageBoxImage.Error : MessageBoxImage.Information);
 
-    private bool OnConfirmRequested(string text, string title) =>
-        MessageBox.Show(this, text, title, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
-
     private void OnElevationRequested()
     {
         var result = MessageBox.Show(this, L("MsgElevationRequired"), L("AppTitle"),
@@ -191,7 +187,6 @@ public partial class MainWindow : Window
     private void OnClosed(object? sender, EventArgs e)
     {
         _vm.MessageRequested -= OnMessageRequested;
-        _vm.ConfirmRequested -= OnConfirmRequested;
         _vm.ChartTick -= OnChartTick;
         _vm.UiStringsChanged -= ApplyLocalization;
         _vm.ThemeChanged -= OnThemeChanged;

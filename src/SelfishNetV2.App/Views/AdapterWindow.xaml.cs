@@ -1,5 +1,5 @@
 using System.Windows;
-using System.Windows.Controls;
+using SelfishNetV2.App.Theming;
 using SelfishNetV2.Core;
 using SelfishNetV2.Services;
 
@@ -12,7 +12,6 @@ public partial class AdapterWindow : Window
         string Details,
         string Ip,
         string Gateway,
-        string Forwarding,
         AdapterInfo Adapter);
 
     public AdapterInfo? Selected { get; private set; }
@@ -21,14 +20,11 @@ public partial class AdapterWindow : Window
     {
         InitializeComponent();
 
-        bool forwarding = AdapterService.IsOsForwardingEnabled();
-        string fwdText = LocalizationManager.Get(forwarding ? "AdapterForwardingOn" : "AdapterForwardingOff");
         var rows = adapters.Select(a => new Row(
             a.Name,
             string.IsNullOrWhiteSpace(a.Description) ? a.Name : a.Description,
             NetKeys.FormatIp(a.LocalIpKey),
             a.GatewayIpKey == 0 ? "—" : NetKeys.FormatIp(a.GatewayIpKey),
-            fwdText,
             a)).ToList();
 
         Grid.ItemsSource = rows;
@@ -40,12 +36,15 @@ public partial class AdapterWindow : Window
         BtnOk.Click += (_, _) => Accept();
         BtnCancel.Click += (_, _) => DialogResult = false;
 
+        // This window is created after startup, so apply the immersive dark title
+        // bar to it as well (ThemeManager only walks existing windows).
+        SourceInitialized += (_, _) => TitleBarHelper.Apply(this, ThemeManager.Current);
+
         Title = LocalizationManager.Get("AdapterDialogTitle");
         TxtPrompt.Text = LocalizationManager.Get("AdapterSelectPrompt");
         ColAdapter.Header = LocalizationManager.Get("AdapterColName");
         ColIp.Header = LocalizationManager.Get("AdapterColIP");
         ColGateway.Header = LocalizationManager.Get("AdapterColGateway");
-        ColForwarding.Header = LocalizationManager.Get("AdapterColForwarding");
         BtnOk.Content = LocalizationManager.Get("BtnOK");
         BtnCancel.Content = LocalizationManager.Get("BtnCancel");
 

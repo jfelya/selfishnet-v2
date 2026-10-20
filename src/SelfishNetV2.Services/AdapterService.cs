@@ -1,5 +1,4 @@
 using System.Security.Principal;
-using Microsoft.Win32;
 using SelfishNetV2.Core;
 using SelfishNetV2.Drivers;
 
@@ -30,15 +29,4 @@ public sealed class AdapterService
         catch { return false; }
     }
 
-    /// <summary>True when Windows itself routes packets (IPEnableRouter=1) — that would
-    /// bypass our userspace shaper, so the UI warns before starting.</summary>
-    public static bool IsOsForwardingEnabled()
-    {
-        try
-        {
-            using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\Tcpip\Parameters");
-            return key?.GetValue("IPEnableRouter") is int i && i == 1;
-        }
-        catch { return false; }
-    }
 }

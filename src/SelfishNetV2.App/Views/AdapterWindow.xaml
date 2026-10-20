@@ -21,39 +21,35 @@
         <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
                 ClipToBounds="True">
-            <DataGrid x:Name="Grid" IsReadOnly="True" RowHeight="38"
+            <DataGrid x:Name="Grid" IsReadOnly="True" RowHeight="56"
                       SelectionMode="Single" SelectionUnit="FullRow">
                 <DataGrid.Columns>
                     <DataGridTemplateColumn x:Name="ColAdapter" Width="*">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <StackPanel ToolTip="{Binding Details}">
-                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{Binding Details}" FontSize="11"
+                                <StackPanel VerticalAlignment="Center" ToolTip="{Binding Details}">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding Details}" FontSize="11" Margin="0,2,0,0"
                                                Foreground="{DynamicResource TextDimBrush}"
                                                TextTrimming="CharacterEllipsis"/>
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTemplateColumn x:Name="ColIp" Width="130" IsReadOnly="True">
+                    <DataGridTemplateColumn x:Name="ColIp" Width="145" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding Ip}" FontFamily="Consolas"/>
+                                <TextBlock Text="{Binding Ip}" FontFamily="Consolas"
+                                           VerticalAlignment="Center"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTemplateColumn x:Name="ColGateway" Width="130" IsReadOnly="True">
+                    <DataGridTemplateColumn x:Name="ColGateway" Width="145" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding Gateway}" FontFamily="Consolas"/>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    <DataGridTemplateColumn x:Name="ColForwarding" Width="110" IsReadOnly="True">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Forwarding}"/>
+                                <TextBlock Text="{Binding Gateway}" FontFamily="Consolas"
+                                           VerticalAlignment="Center"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>

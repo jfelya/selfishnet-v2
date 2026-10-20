@@ -134,9 +134,6 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Raised on the UI thread when a modal message must be shown (title = AppTitle).</summary>
     public event Action<string, string, bool>? MessageRequested; // text, title, isError
 
-    /// <summary>Yes/No confirmation; returns false when the user declines.</summary>
-    public event Func<string, string, bool>? ConfirmRequested; // text, title → confirmed
-
     /// <summary>Static UI labels changed (language or unit mode) → window re-applies headers etc.</summary>
     public event Action? UiStringsChanged;
 
@@ -189,12 +186,6 @@ public sealed class MainViewModel : ObservableObject
         }
         else
         {
-            if (AdapterService.IsOsForwardingEnabled())
-            {
-                bool cont = ConfirmRequested?.Invoke(LocalizationManager.Get("MsgForwardingOn"),
-                    LocalizationManager.Get("AppTitle")) ?? true;
-                if (!cont) return;
-            }
             bool ok = false;
             await RunBusyAsync(LocalizationManager.Get("StatusResolvingGateway"), async () =>
             {

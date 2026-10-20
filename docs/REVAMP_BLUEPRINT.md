@@ -51,7 +51,7 @@ MUST reproduce them; the Modern engine must remain wire-compatible with them:
 | M4 | Single-router-MAC assumption breaks on mesh/multi-SSID gateways or mid-session gateway failover | Learn a router-identity set; re-resolve on sustained source-MAC mismatch |
 | M5 | Speed readouts skewed by imprecise 1 s UI timer | Timestamped counters, speed computed over real elapsed time + EMA smoothing |
 | M6 | Fragile display-name handling — `StripSuffix()` hardcodes 4 localized suffixes to undo view decoration | Strict MVVM separation: decoration applied at render time only; the model never stores decorated text |
-| M7 | Windows `IPEnableRouter=1` silently bypasses the userspace shaper (prototype only warns) | Detect → offer to disable (`Set-Dhcp`… registry + reboot warning) or explicitly shape-around; surface forwarding state in adapter dialog |
+| M7 | Windows `IPEnableRouter=1` silently bypasses the userspace shaper (prototype only warns) | *Removed in v2.0.1 at the user's request:* detection, adapter column and warning were deleted (`IPEnableRouter` is no longer read). Historical note: this remains a real Windows behaviour if the registry value is enabled. |
 | M8 | Per-device spoof checkbox from the original was dropped ("spoof ALL") | Restore per-device targeting in both engines |
 
 #### Inherited constraints (accepted, documented)

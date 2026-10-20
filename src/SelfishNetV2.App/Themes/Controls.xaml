@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:SelfishNetV2.App.Controls">
 
     <!-- ============ Buttons ============ -->
     <Style x:Key="BaseButton" TargetType="Button">
@@ -108,6 +109,10 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!-- Implicit styles keyed by a base type do not apply to derived controls:
+         make the numeric limit editor inherit the themed TextBox look explicitly. -->
+    <Style TargetType="{x:Type controls:NumericTextBox}" BasedOn="{StaticResource {x:Type TextBox}}"/>
 
     <!-- ============ CheckBox ============ -->
     <Style TargetType="CheckBox">
