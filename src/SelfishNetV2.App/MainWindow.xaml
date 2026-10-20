@@ -52,7 +52,8 @@
                             </Style>
                         </Button.Style>
                     </Button>
-                    <Button x:Name="BtnAdapter" Command="{Binding PickAdapterCommand}" Margin="0,0,20,0"/>
+                    <Button x:Name="BtnAdapter" Command="{Binding PickAdapterCommand}" Margin="0,0,8,0"/>
+                    <Button x:Name="BtnResetLimits" Command="{Binding ResetLimitsCommand}" Margin="0,0,20,0"/>
 
                     <TextBlock x:Name="LblEngine" VerticalAlignment="Center"
                                Foreground="{DynamicResource TextDimBrush}" Margin="0,0,8,0"/>
@@ -93,7 +94,7 @@
         <Border Grid.Row="2" Style="{StaticResource Card}" Margin="12,12,12,0" ClipToBounds="True">
             <DataGrid x:Name="DeviceGrid" ItemsSource="{Binding Devices}"
                       SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
-                      IsReadOnly="False" RowHeight="34" SelectionMode="Single">
+                      IsReadOnly="False" RowHeight="42" SelectionMode="Single">
                 <DataGrid.Columns>
                     <DataGridTemplateColumn x:Name="ColName" Width="1.5*" MinWidth="110" CanUserSort="False">
                         <DataGridTemplateColumn.CellTemplate>
@@ -155,8 +156,9 @@
                         </DataGridTemplateColumn.CellTemplate>
                         <DataGridTemplateColumn.CellEditingTemplate>
                             <DataTemplate>
-                                <TextBox Text="{Binding CapDownText, UpdateSourceTrigger=LostFocus}"
-                                         HorizontalContentAlignment="Center"/>
+                                <controls:NumericTextBox Text="{Binding CapDownText, UpdateSourceTrigger=LostFocus}"
+                                                         HorizontalContentAlignment="Center"
+                                                         VerticalContentAlignment="Center"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
@@ -169,8 +171,9 @@
                         </DataGridTemplateColumn.CellTemplate>
                         <DataGridTemplateColumn.CellEditingTemplate>
                             <DataTemplate>
-                                <TextBox Text="{Binding CapUpText, UpdateSourceTrigger=LostFocus}"
-                                         HorizontalContentAlignment="Center"/>
+                                <controls:NumericTextBox Text="{Binding CapUpText, UpdateSourceTrigger=LostFocus}"
+                                                         HorizontalContentAlignment="Center"
+                                                         VerticalContentAlignment="Center"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
@@ -184,14 +187,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn x:Name="ColSpoof" Width="94" CanUserSort="False">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <CheckBox IsChecked="{Binding Targeted, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                          IsEnabled="{Binding CanEditFlags}" HorizontalAlignment="Center"/>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
+
                 </DataGrid.Columns>
             </DataGrid>
         </Border>

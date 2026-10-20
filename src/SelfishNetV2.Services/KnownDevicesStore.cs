@@ -143,7 +143,8 @@ public sealed class KnownDevicesStore
         dev.CapDownBytesPerSec = e.DownCapBytes;
         dev.CapUpBytesPerSec = e.UpCapBytes;
         dev.Redirect = !e.Blocked;
-        dev.Targeted = e.Targeted;
+        // Spoofing is unconditional now (the per-device column was removed), so the
+        // legacy Targeted flag is deliberately not restored.
     }
 
     public void Update(Device dev)
@@ -156,7 +157,7 @@ public sealed class KnownDevicesStore
             e.DownCapBytes = dev.CapDownBytesPerSec;
             e.UpCapBytes = dev.CapUpBytesPerSec;
             e.Blocked = !dev.Redirect;
-            e.Targeted = dev.Targeted;
+            e.Targeted = true; // spoofing is unconditional; normalise legacy files
             e.LastIp = NetKeys.FormatIp(dev.IpKey);
             if (!string.IsNullOrWhiteSpace(dev.Name) &&
                 !string.Equals(dev.Name, NetKeys.FormatIp(dev.IpKey), StringComparison.Ordinal))

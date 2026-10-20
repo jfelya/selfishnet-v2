@@ -14,7 +14,7 @@ public class KnownDevicesStoreTests
     private static Device Make(uint ip, ulong mac, string name = "") => new(ip, mac) { Name = name };
 
     [Fact]
-    public void ExactMac_AppliesNameCapsBlockAndTarget()
+    public void ExactMac_AppliesNameCapsAndBlock()
     {
         var store = KnownDevicesStore.InMemory();
         var original = Make(0xC0A80164, 0xAABBCCDDEE01, "Kids tablet");
@@ -22,7 +22,6 @@ public class KnownDevicesStoreTests
         original.CapDownBytesPerSec = 256_000;
         original.CapUpBytesPerSec = 128_000;
         original.Redirect = false;
-        original.Targeted = false;
         store.Update(original);
 
         var fresh = Make(0xC0A80164, 0xAABBCCDDEE01);
@@ -31,7 +30,8 @@ public class KnownDevicesStoreTests
         Assert.Equal(256_000, fresh.CapDownBytesPerSec);
         Assert.Equal(128_000, fresh.CapUpBytesPerSec);
         Assert.False(fresh.Redirect);
-        Assert.False(fresh.Targeted);
+        // Spoofing is unconditional now (the per-device column was removed).
+        Assert.True(fresh.Targeted);
         Assert.True(fresh.KnownSettingsApplied);
     }
 

@@ -35,6 +35,7 @@ public sealed class MainViewModel : ObservableObject
     private bool _isEngineLegacy;
     private bool _isEngineModern = true;
     private DeviceViewModel? _selectedDevice;
+    private readonly DispatcherTimer _fastTimer = new();
 
     public MainViewModel(EngineOrchestrator? orch, AdapterService adapters, SettingsStore settings,
         string? driverProblem, bool driverRestricted = false)
@@ -62,6 +63,13 @@ public sealed class MainViewModel : ObservableObject
         SwitchEngineCommand = new RelayCommand(async p => await SwitchEngineAsync(p as string), _ => CanUseEngine);
         ToggleLanguageCommand = new RelayCommand(_ => ToggleLanguage());
         OpenNpcapDownloadCommand = new RelayCommand(_ => OpenNpcapDownload());
+        ResetLimitsCommand = new RelayCommand(_ => ResetLimits(), _ => CanUseEngine);
+
+        // Live grid refresh: 4 Hz from lifetime counters (the engine still samples
+        // once per second for its cap windows and charts).
+        _fastTimer.Interval = TimeSpan.FromMilliseconds(250);
+        _fastTimer.Tick += (_, _) => OnFastTick();
+        _fastTimer.Start();
 
         LocalizationManager.OnLanguageChanged += ApplyLanguage;
 
@@ -147,6 +155,7 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand SwitchEngineCommand { get; }
     public RelayCommand ToggleLanguageCommand { get; }
     public RelayCommand OpenNpcapDownloadCommand { get; }
+    public RelayCommand ResetLimitsCommand { get; }
 
     // ---------------- device edits (apply + persist via orchestrator) ----------------
 
@@ -156,7 +165,6 @@ public sealed class MainViewModel : ObservableObject
         _orch?.SetCaps(dev, downBytes ?? dev.CapDownBytesPerSec, upBytes ?? dev.CapUpBytesPerSec);
 
     public void SetBlocked(Device dev, bool blocked) => _orch?.SetBlocked(dev, blocked);
-    public void SetTargeted(Device dev, bool targeted) => _orch?.SetTargeted(dev, targeted);
 
     // ---------------- commands ----------------
 
@@ -373,13 +381,26 @@ public sealed class MainViewModel : ObservableObject
             totalDown += dev.LastDownSample;
             totalUp += dev.LastUpSample;
         }
-        foreach (var vm in Devices) vm.RefreshSpeeds();
-        TotalTrafficText = LocalizationManager.Get("TotalTraffic",
-            SpeedFormatter.FormatBytes(totalDown, Units), SpeedFormatter.FormatBytes(totalUp, Units));
         RefreshCounts();
         double selDown = SelectedDevice?.Model.LastDownSample ?? 0;
         double selUp = SelectedDevice?.Model.LastUpSample ?? 0;
         ChartTick?.Invoke(totalDown, totalUp, selDown, selUp);
+    }
+
+    /// <summary>Fast UI sampling (4 Hz): per-device rates from lifetime byte counters.</summary>
+    private void OnFastTick()
+    {
+        if (_orch == null) return;
+        long now = System.Diagnostics.Stopwatch.GetTimestamp();
+        double totalDown = 0, totalUp = 0;
+        foreach (var vm in Devices)
+        {
+            vm.UpdateLiveSpeed(now);
+            totalDown += vm.DownBps;
+            totalUp += vm.UpBps;
+        }
+        TotalTrafficText = LocalizationManager.Get("TotalTraffic",
+            SpeedFormatter.FormatBytes(totalDown, Units), SpeedFormatter.FormatBytes(totalUp, Units));
     }
 
     private void RefreshCounts() =>
@@ -516,7 +537,20 @@ public sealed class MainViewModel : ObservableObject
     }
 
     /// <summary>Idempotent teardown for the Closed path.</summary>
-    public void Shutdown() => _orch?.Dispose();
+    public void Shutdown()
+    {
+        _fastTimer.Stop();
+        _orch?.Dispose();
+    }
+
+    /// <summary>Sets every device's download/upload limit back to 0 (unlimited).</summary>
+    private void ResetLimits()
+    {
+        if (_orch == null) return;
+        foreach (var dev in _orch.Catalog.Devices)
+            _orch.SetCaps(dev, 0, 0);
+        foreach (var vm in Devices) vm.RefreshCaps();
+    }
 
     // ---------------- plumbing ----------------
 

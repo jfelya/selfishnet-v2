@@ -134,6 +134,9 @@ SelfishNet v2/
 | Reactive poison + 2 s cadence | Fixes the observed "device escaped shaping" race |
 | `asInvoker` + access probe | Admin is only needed when Npcap restricts the driver; avoids a UAC prompt otherwise |
 | Settings follow rotated MACs | Phones randomize their Wi-Fi MAC; caps/names match by MAC → last IP → hostname so limits follow the device |
+| Spoofing is unconditional | Per-device Spoof column removed (user request); every discovered device is shaped. Legacy `Targeted` flags are ignored on load and normalised to true on save |
+| 4 Hz live speeds | UI computes per-device rates from lifetime counters every 250 ms; the engine keeps 1 s windows for cap math and charts |
+| Healing is paced and quiet | Restore bursts sleep 4 ms/pair (Realtek/Npcap error 31 under dense sends); heal-path send failures are counted, never shown as dialogs |
 | Fail-closed shaping | A gateway-less adapter is rejected (`MsgNoGateway`) and send failures are surfaced — never a silent "running but not spoofing" state |
 | Two portable exes versioned at the root | Clone-and-run convenience; a deliberate ~130 MB-per-rebuild trade-off (build output stays ignored) |
 | Spanish + dark defaults, maximized start | User preference |
@@ -176,7 +179,7 @@ Rules adopted (keep them):
 - Npcap (https://npcap.com) preferred, WinPcap fallback. Npcap's "restrict to administrators"
   install option decides whether elevation is needed.
 - `%AppData%\SelfishNetV2\` holds the only persistent data: `settings.json` (language, theme,
-  units, last adapter, engine) and `known_devices.json` (names, caps, block/spoof flags, last IP
+  units, last adapter, engine) and `known_devices.json` (names, caps, blocked flag, last IP
   per MAC). No logging, no traffic/payload storage.
 
 ## 10. Working timeline (compact story, survives the history rewrite)
@@ -201,6 +204,8 @@ Rules adopted (keep them):
    correctly; the real cause was a phone rotating its Wi-Fi MAC, so the saved cap stayed on the old
    MAC entry and the new entry was unlimited. Fixed with identity fallback (MAC → last IP →
    hostname), plus fail-closed shaping (no gateway), send-failure reporting and About diagnostics.
+10. **UX round** — Spoof column removed (all devices shaped by default), Reset-limits button,
+    numeric-only limit boxes (empty = 0), taller rows, 4 Hz live speeds, paced/silent healing.
 
 ## 11. Backlog (see `docs/PENDING.md`)
 

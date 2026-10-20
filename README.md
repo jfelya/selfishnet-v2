@@ -36,7 +36,7 @@ single elevated restart only if the driver is restricted.
 | Legacy engine (spec-locked 2007 mechanics) | ✅ |
 | Modern engine (token-bucket, VLAN-aware, zero-alloc hot path) | ✅ |
 | Runtime engine switch (UI toggle, auto-heal before swap) | ✅ |
-| WPF shell (dark/light, live charts, per-device caps/block/spoof) | ✅ |
+| WPF shell (dark/light, live charts, per-device caps/block, 4 Hz speeds) | ✅ |
 | Localization (en-US / es-419, hot-swappable) | ✅ |
 | Auto-discovery (60 s background sweep + passive ARP learning) | ✅ |
 | Robust healing (registry-backed, broadcast gratuitous, gateway re-resolve) | ✅ |
@@ -58,8 +58,9 @@ project root for convenience. No .NET install needed — copy one anywhere.
    Not sure? Just run the app: it opens normally and shows a **Download Npcap** button.
 2. Double-click `SelfishNetV2-x64.exe`. It starts **without** elevation; if your Npcap install
    restricts the driver to administrators, it offers a one-click elevated restart.
-3. Pick the adapter → set caps/block/spoof per device → **Start Shaping**. (A background
-   sweep every 60 s also picks up devices that join later; you never have to rescan manually.)
+3. Pick the adapter → set caps or **Block** per device → **Start Shaping**. Every discovered
+   device is shaped automatically (no per-device spoof toggle). A background sweep every 60 s
+   also picks up devices that join later; you never have to rescan manually.
 4. Toggle **Legacy ⇄ Modern** at any time; the app heals ARP tables before switching engines.
 5. **Stop** (or close the app) restores the LAN: 35 genuine ARP pairs per spoofed device,
    plus broadcast gratuitous announcements so every cache holder is corrected.
@@ -70,12 +71,12 @@ project root for convenience. No .NET install needed — copy one anywhere.
   ARP races instantly — when a victim asks for the gateway, when the gateway replies to a
   victim, or when a victim announces itself.
 - **Healing can't miss a device:** every poisoned device is tracked in a registry independent
-  of its current "Spoof" checkbox, so un-checking a device mid-session heals it immediately,
-  and stop/switch/eviction always repairs what was actually poisoned. If the gateway MAC was
-  lost, it is re-resolved before healing; failures keep the claim for a retry on close.
-  Windows logoff/shutdown also heals synchronously (3 s bound) before the process exits.
-  Restoration is best-effort by nature: force-kills and devices with static ARP or ARP filtering
-  cannot be corrected.
+  of the device list, so stop/switch/eviction always repairs what was actually poisoned. If the
+  gateway MAC was lost, it is re-resolved before healing; failures keep the claim for a retry on
+  close. Heal sends are paced (Realtek/Npcap reject dense bursts with error 31) and their failures
+  are counted silently instead of raising dialogs. Windows logoff/shutdown heals synchronously
+  (3 s bound) before the process exits. Restoration is best-effort by nature: force-kills and
+  devices with static ARP or ARP filtering cannot be corrected.
 - **Crash-resistant under bursts:** capture parsing is zero-allocation over the native buffer,
   the forwarding buffer is bounds-checked and reused, and per-packet exceptions can never kill
   the capture thread (regression-tested with a 10 000-frame 1514-byte burst).
@@ -85,6 +86,8 @@ project root for convenience. No .NET install needed — copy one anywhere.
 - **No silent failures:** a gateway-less adapter is rejected with a clear message (instead of
   "starting" without spoofing), packet-send failures are surfaced, and *About* shows live
   diagnostics (adapter, gateway MAC, state, targets, forwarded/dropped, send failures).
+- **Comfort features:** per-device speeds refresh at 4 Hz, limit boxes accept digits only and
+  commit empty as 0, and **Reset limits** returns every device to unlimited in one click.
 
 ## Build / test (developer)
 

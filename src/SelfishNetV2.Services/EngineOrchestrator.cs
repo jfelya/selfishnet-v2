@@ -56,7 +56,6 @@ public sealed class EngineOrchestrator : IDisposable
     public void SetCustomName(Device dev, string? name) { dev.CustomName = string.IsNullOrWhiteSpace(name) ? null : name.Trim(); _known.Update(dev); }
     public void SetCaps(Device dev, int downBytes, int upBytes) { dev.CapDownBytesPerSec = downBytes; dev.CapUpBytesPerSec = upBytes; _known.Update(dev); }
     public void SetBlocked(Device dev, bool blocked) { dev.Redirect = !blocked; _known.Update(dev); }
-    public void SetTargeted(Device dev, bool targeted) { dev.Targeted = targeted; _known.Update(dev); }
 
     // ---------------- adapter / session lifecycle ----------------
 

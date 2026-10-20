@@ -58,6 +58,8 @@ public partial class MainWindow : Window
         BtnDiscover.ToolTip = L("BtnDiscoverTooltip");
         BtnAdapter.Content = L("BtnAdapter");
         BtnAdapter.ToolTip = L("BtnAdapterTooltip");
+        BtnResetLimits.Content = L("BtnResetLimits");
+        BtnResetLimits.ToolTip = L("BtnResetLimitsTooltip");
 
         LblEngine.Text = L("EngineGroupLabel");
         TglLegacy.Content = L("EngineLegacy");
@@ -88,7 +90,6 @@ public partial class MainWindow : Window
         ColDownCap.Header = Header2(L("ColDownCap"), $"({unit})", capTip);
         ColUpCap.Header = Header2(L("ColUpCap"), $"({unit})", capTip);
         ColBlock.Header = Header(L("ColBlock"), L("BlockColumnTooltip"));
-        ColSpoof.Header = Header(L("ColSpoof"), L("SpoofColumnTooltip"));
     }
 
     /// <summary>Header content that carries a tooltip (DataGridColumn has no HeaderToolTip).</summary>

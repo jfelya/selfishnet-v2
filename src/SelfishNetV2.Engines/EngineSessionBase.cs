@@ -392,18 +392,18 @@ public abstract class EngineSessionBase : IEngineSession
             _poisoned[v.IpKey] = v.MacKey;
             // 1. to victim: "router is at us"
             ArpFrameBuilder.BuildPoison(buf, adapter.MacKey, adapter.GatewayIpKey, v.MacKey, v.IpKey);
-            SendFrame(arp, buf);
+            SendFrame(arp, buf, reportFailure: true);
             // 2. to router: "victim is at us"
             ArpFrameBuilder.BuildPoison(buf, adapter.MacKey, v.IpKey, routerMac, adapter.GatewayIpKey);
-            SendFrame(arp, buf);
+            SendFrame(arp, buf, reportFailure: true);
             // 3. self-refresh: our listener re-learns the TRUE router MAC every round
             ArpFrameBuilder.BuildSelfRefresh(buf, adapter.MacKey, adapter.LocalIpKey, routerMac, adapter.GatewayIpKey);
-            SendFrame(arp, buf);
+            SendFrame(arp, buf, reportFailure: true);
             // 4. inert codegen leftover — Legacy only, for behavioral parity
             if (SendInertSelfFrame)
             {
                 ArpFrameBuilder.BuildInertSelf(buf, adapter.MacKey, adapter.LocalIpKey, v.MacKey, v.IpKey);
-                SendFrame(arp, buf);
+                SendFrame(arp, buf, reportFailure: true);
             }
         }
     }
@@ -449,6 +449,8 @@ public abstract class EngineSessionBase : IEngineSession
                 // router learns the victim's real MAC
                 ArpFrameBuilder.BuildRestore(buf, macKey, ipKey, routerMac, adapter.GatewayIpKey);
                 SendWithRetry(arp, buf);
+                // Pace the burst: Realtek/Npcap rejects very dense send bursts (error 31).
+                Thread.Sleep(4);
             }
             // Broadcast gratuitous announcements: corrects any cache holder, including
             // devices that never answered our unicast restores.
@@ -458,6 +460,7 @@ public abstract class EngineSessionBase : IEngineSession
                 SendWithRetry(arp, buf);
                 ArpFrameBuilder.BuildGratuitousBroadcast(buf, macKey, ipKey);
                 SendWithRetry(arp, buf);
+                Thread.Sleep(4);
             }
             return true;
         }
@@ -499,17 +502,22 @@ public abstract class EngineSessionBase : IEngineSession
 
     private void SendWithRetry(PcapCaptureSession session, ReadOnlySpan<byte> frame)
     {
-        if (!SendFrame(session, frame))
-            SendFrame(session, frame); // single retry; tiny frames rarely fail
+        if (SendFrame(session, frame)) return;
+        Thread.Sleep(15); // Win32 error 31 ("device not functioning") is transient under burst
+        SendFrame(session, frame);
     }
 
-    /// <summary>Sends one frame and records/reports driver rejections (surfaced in the UI
-    /// and in About diagnostics instead of failing silently).</summary>
-    private bool SendFrame(PcapCaptureSession session, ReadOnlySpan<byte> frame)
+    /// <summary>
+    /// Sends one frame and records driver rejections. Only the active spoof burst
+    /// reports them to the UI (traffic control is genuinely broken then); best-effort
+    /// paths such as healing count failures silently — a failed restore frame during
+    /// a Wi-Fi hiccup must not scare the user with a modal dialog.
+    /// </summary>
+    private bool SendFrame(PcapCaptureSession session, ReadOnlySpan<byte> frame, bool reportFailure = false)
     {
         if (session.Send(frame) == 0) return true;
         Interlocked.Increment(ref _spoofSendFailures);
-        if (Interlocked.Exchange(ref _sendFailureReported, 1) == 0)
+        if (reportFailure && Interlocked.Exchange(ref _sendFailureReported, 1) == 0)
             RaiseError(EngineErrorKind.SendFailed, session.Capture.LastError);
         return false;
     }
