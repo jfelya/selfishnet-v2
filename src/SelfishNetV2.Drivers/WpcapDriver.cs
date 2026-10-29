@@ -113,14 +113,16 @@ internal sealed unsafe class WpcapCapture : IPcapCapture
 
     public int Send(ReadOnlySpan<byte> frame)
     {
-        if (_disposed || _handle == IntPtr.Zero) return -1;
         int rc;
         fixed (byte* p = frame)
         {
-            lock (_sendGate) // serialize concurrent sends on this handle
+            lock (_sendGate) // serialize sends and keep the handle alive through the call
+            {
+                if (_disposed || _handle == IntPtr.Zero) return -1;
                 rc = _api.SendPacket(_handle, p, frame.Length);
+                if (rc != 0) _lastError = ReadError(); // keep the reason for diagnostics
+            }
         }
-        if (rc != 0) _lastError = ReadError(); // keep the reason for diagnostics
         return rc;
     }
 
@@ -170,14 +172,18 @@ internal sealed unsafe class WpcapCapture : IPcapCapture
 
     public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
         // Callers (PcapCaptureSession) guarantee the receive thread has been joined BEFORE
-        // this runs (breakloop → join → close). Never close under a blocked pcap_next_ex.
-        if (_handle != IntPtr.Zero)
+        // this runs (breakloop → join → close). The gate also excludes a send that is
+        // already inside pcap_sendpacket.
+        lock (_sendGate)
         {
-            _api.Close(_handle);
-            _handle = IntPtr.Zero;
+            if (_disposed) return;
+            _disposed = true;
+            if (_handle != IntPtr.Zero)
+            {
+                _api.Close(_handle);
+                _handle = IntPtr.Zero;
+            }
         }
         GC.SuppressFinalize(this);
     }

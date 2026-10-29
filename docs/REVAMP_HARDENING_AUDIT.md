@@ -2,7 +2,7 @@
 
 > Status: **approved and implemented**. This is the audit record behind
 > `docs/superpowers/plans/2026-10-28-revamp-hardening.md`. It is a snapshot: the
-> baseline below was 96 tests; the implemented branch is at **115/115 green**.
+> baseline below was 96 tests; the implemented branch is at **124/124 green**.
 > The living project story stays in `AI_ENVIRONMENT_NOTES.md`.
 
 ## What this repo does

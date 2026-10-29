@@ -93,6 +93,8 @@ public static class LocalizationManager
         ["BtnCancel"] = ("Cancel", "Cancelar"),
         ["MsgNoAdapter"] = ("No network card with an active gateway has been found!",
                             "¡No se encontró ninguna tarjeta de red con una puerta de enlace activa!"),
+        ["MsgNoPcapAdapter"] = ("Network cards were found, but none has a matching Npcap device. Reinstall Npcap or choose another adapter.",
+                                "Se encontraron tarjetas de red, pero ninguna tiene un dispositivo Npcap correspondiente. Reinstala Npcap o elige otro adaptador."),
         ["MsgDriverNotFound"] = ("Packet capture driver not detected. Npcap is required to control traffic — install it, then restart the app.",
                                  "No se detectó el controlador de captura de paquetes. Npcap es necesario para controlar el tráfico — instálalo y reinicia la app."),
         ["BtnDownloadNpcap"] = ("Download Npcap", "Descargar Npcap"),

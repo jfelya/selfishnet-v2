@@ -96,7 +96,7 @@ Bandwidth limits can be entered in KByte/s or KBit/s using the unit toggle in th
 --------------------------------------------------------------------
 The app inspects Ethernet and IP packet headers to identify addresses, classify traffic, rewrite MAC addresses for forwarding, and measure traffic rates. It does not decrypt application traffic or serialize packet payloads to disk.
 
-The app's persistent data consists of two files:
+The app's persistent data consists of two JSON files (plus `.bak` backups after a save):
 
   - %AppData%\SelfishNetV2\settings.json
     Stores application settings, including language, theme, bandwidth

@@ -20,4 +20,11 @@ public class AdapterMatchTests
         Assert.Equal(pcapNames[0], NetworkAdapterEnumerator.MatchPcapName(
             "{11111111-1111-1111-1111-111111111111}", pcapNames));
     }
+
+    [Fact]
+    public void SubnetSweep_StartsAtTheLocalAddress()
+    {
+        const uint local = 0x0A003205; // 10.0.50.5
+        Assert.Equal(local, NetworkAdapterEnumerator.EnumerateSubnet(local, 0xFFFF0000).First());
+    }
 }

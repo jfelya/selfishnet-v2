@@ -58,12 +58,19 @@ public static class NetworkAdapterEnumerator
         return "";
     }
 
-    /// <summary>Every host address in the adapter's subnet (network+1 .. broadcast-1).</summary>
+    /// <summary>Every host address in the adapter's subnet, starting at the local
+    /// address and walking upward, then wrapping to the lower addresses. A bounded
+    /// sweep on a /16 therefore still covers the user's own /24 first.</summary>
     public static IEnumerable<uint> EnumerateSubnet(uint localIpKey, uint maskKey)
     {
         uint net = localIpKey & maskKey;
         uint broadcast = net | ~maskKey;
-        for (uint h = net + 1; h < broadcast; h++)
+        if (broadcast <= net) yield break;
+
+        uint first = localIpKey > net && localIpKey < broadcast ? localIpKey : net + 1;
+        for (uint h = first; h < broadcast; h++)
+            yield return h;
+        for (uint h = net + 1; h < first; h++)
             yield return h;
     }
 }

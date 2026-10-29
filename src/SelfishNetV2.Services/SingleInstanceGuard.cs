@@ -15,11 +15,18 @@ public static class SingleInstanceGuard
     public static bool TryAcquire(string name)
     {
         if (_mutex != null) return false;
-        var mutex = new Mutex(initiallyOwned: true, name, out bool created);
-        if (!created)
+        var mutex = new Mutex(initiallyOwned: false, name);
+        try
         {
-            mutex.Dispose();
-            return false;
+            if (!mutex.WaitOne(0))
+            {
+                mutex.Dispose();
+                return false;
+            }
+        }
+        catch (AbandonedMutexException)
+        {
+            // The previous owner died; the mutex is now ours.
         }
         _mutex = mutex;
         _name = name;

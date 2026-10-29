@@ -46,6 +46,28 @@ public static class NetKeys
         $"{(byte)(v >> 40):X2}:{(byte)(v >> 32):X2}:{(byte)(v >> 24):X2}:" +
         $"{(byte)(v >> 16):X2}:{(byte)(v >> 8):X2}:{(byte)v:X2}";
 
+    /// <summary>Parses a normalized "AA:BB:CC:DD:EE:FF" key back to a numeric MAC.</summary>
+    public static ulong ParseMac(string text)
+    {
+        ReadOnlySpan<char> s = text.AsSpan().Trim();
+        Span<byte> b = stackalloc byte[6];
+        int bi = 0, i = 0;
+        while (i < s.Length && bi < 6)
+        {
+            if (s[i] is ':' or '-') { i++; continue; }
+            int hi = HexVal(s[i]); int lo = i + 1 < s.Length ? HexVal(s[i + 1]) : -1;
+            if (hi < 0 || lo < 0) return 0;
+            b[bi++] = (byte)((hi << 4) | lo);
+            i += 2;
+        }
+        return bi == 6 ? MacToUInt64(b) : 0;
+
+        static int HexVal(char c) =>
+            c is >= '0' and <= '9' ? c - '0' :
+            c is >= 'a' and <= 'f' ? c - 'a' + 10 :
+            c is >= 'A' and <= 'F' ? c - 'A' + 10 : -1;
+    }
+
     /// <summary>Formats an IPv4 key as "a.b.c.d" (display only).</summary>
     public static string FormatIp(uint v) => $"{v >> 24}.{(v >> 16) & 0xFF}.{(v >> 8) & 0xFF}.{v & 0xFF}";
 

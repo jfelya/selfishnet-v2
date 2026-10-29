@@ -48,4 +48,26 @@ public class ViewModelStateTests
             orchestrator.Dispose();
         }
     }
+
+    [Fact]
+    public void HugeNumericCap_ClampsInsteadOfBecomingUnlimited()
+    {
+        var orchestrator = new EngineOrchestrator(
+            new LoopbackDriver(), KnownDevicesStore.InMemory(), EngineKind.Modern);
+        try
+        {
+            var host = new MainViewModel(orchestrator, new AdapterService(null),
+                new SettingsStore(), driverProblem: null);
+            var device = new Device(0xC0A80164, 0xAABBCCDDEE01);
+            var vm = new DeviceViewModel(device, host);
+
+            vm.CapDownText = new string('9', 40);
+
+            Assert.Equal(int.MaxValue, device.CapDownBytesPerSec);
+        }
+        finally
+        {
+            orchestrator.Dispose();
+        }
+    }
 }

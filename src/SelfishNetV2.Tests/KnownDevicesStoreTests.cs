@@ -82,6 +82,20 @@ public class KnownDevicesStoreTests
     }
 
     [Fact]
+    public void LocalMac_DoesNotInheritFromGlobalOldEntry()
+    {
+        var store = KnownDevicesStore.InMemory();
+        var oldDevice = Make(0xC0A80164, 0xA8BBCCDDEE01); // globally administered
+        oldDevice.CapDownBytesPerSec = 256_000;
+        store.Update(oldDevice);
+
+        var fresh = Make(0xC0A80164, 0x1E335421F882); // randomized new MAC, same IP
+
+        Assert.False(store.ApplyTo(fresh));
+        Assert.Equal(0, fresh.CapDownBytesPerSec);
+    }
+
+    [Fact]
     public void UserEdited_DoesNotInheritByNameLater()
     {
         var store = KnownDevicesStore.InMemory();

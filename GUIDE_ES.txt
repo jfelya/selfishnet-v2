@@ -109,7 +109,7 @@ Los límites de velocidad se pueden introducir en KByte/s o KBit/s mediante el s
 --------------------------------------------------------------------
 La aplicación inspecciona las cabeceras de los paquetes Ethernet e IP para identificar direcciones, clasificar el tráfico, modificar direcciones MAC al reenviar paquetes y medir las velocidades de transferencia. No descifra el tráfico de las aplicaciones ni serializa el contenido de los paquetes para guardarlo en disco.
 
-Los datos persistentes de la aplicación se guardan en dos archivos:
+Los datos persistentes de la aplicación se guardan en dos archivos JSON (más copias `.bak` después de guardar):
 
   - %AppData%\SelfishNetV2\settings.json
     Guarda la configuración de la aplicación, incluidos el idioma,

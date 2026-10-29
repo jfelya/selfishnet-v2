@@ -15,6 +15,8 @@ public sealed class DeviceCatalog
 
     public event Action<Device>? DeviceAdded;
     public event Action<Device>? DeviceRemoved;
+    /// <summary>Raised when an existing IP starts reporting a different MAC.</summary>
+    public event Action<Device, ulong>? MacChanged;
     /// <summary>Raised when an existing record mutates (MAC learned/changed, flags set).</summary>
     public event Action<Device>? DeviceUpdated;
 
@@ -37,6 +39,7 @@ public sealed class DeviceCatalog
                     _ipByMac.TryRemove(oldMac, out _);
                     _ipByMac[macKey] = ipKey;
                     identityChanged = true;
+                    MacChanged?.Invoke(existing, oldMac);
                 }
                 if (isGateway && !existing.IsGateway)
                 {

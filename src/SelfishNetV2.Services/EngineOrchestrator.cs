@@ -36,6 +36,7 @@ public sealed class EngineOrchestrator : IDisposable
         };
 
         _catalog.DeviceAdded += OnDeviceAdded;
+        _catalog.MacChanged += OnMacChanged;
     }
 
     public DeviceCatalog Catalog => _catalog;
@@ -170,9 +171,28 @@ public sealed class EngineOrchestrator : IDisposable
 
     // ---------------- catalog side-effects ----------------
 
+    private void OnMacChanged(Device dev, ulong oldMac)
+    {
+        // A new globally administered MAC at an old IP is a different physical
+        // device; do not carry the old device's block/cap/name. A randomized MAC
+        // is treated as the same device rotating its private address.
+        if (NetKeys.IsLocallyAdministered(dev.MacKey)) return;
+
+        dev.CapDownBytesPerSec = 0;
+        dev.CapUpBytesPerSec = 0;
+        dev.Redirect = true;
+        dev.CustomName = null;
+        dev.Name = "";
+        dev.Targeted = true;
+        dev.KnownSettingsApplied = false;
+        dev.UserEdited = false;
+        _known.ApplyTo(dev); // exact new MAC only; the IP fallback rejects a global MAC
+    }
+
     private void OnDeviceAdded(Device dev)
     {
         _known.ApplyTo(dev); // remembered name/caps/block/target by MAC
+        _known.Update(dev);  // record LastIp/LastSeen on sighting, not only on edits
         // Background hostname resolution; catalog notifies the UI when done.
         if (dev.IsGateway || dev.IsLocalPc) return;
         _ = Task.Run(async () =>
@@ -186,6 +206,7 @@ public sealed class EngineOrchestrator : IDisposable
                     // Last chance to recover settings for a rotated MAC whose IP also changed.
                     _known.TryApplyByName(dev, name);
                     _catalog.NotifyUpdated(dev);
+                    _known.Update(dev); // persist the resolved SystemName for the next rotation
                 }
             }
             catch { /* keep IP as name */ }

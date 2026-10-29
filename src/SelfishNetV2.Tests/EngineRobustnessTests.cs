@@ -236,6 +236,12 @@ public class EngineRobustnessTests
         var (driver, catalog, engine) = OpenLearned(EngineKind.Modern);
         using var _e = engine;
         Assert.True(await engine.StartShapingAsync());
+        Assert.True(WaitUntil(() => driver.SentFrames.Any(f =>
+        {
+            if (!IsArp(f, 2)) return false;
+            ArpFrame.TryParse(f, out var a);
+            return a.EthDstMac == Victim && a.SenderIp == RouterIp && a.TargetIp == VictimIp;
+        }), 2000), "the first spoof burst should have run");
         Assert.True(catalog.TryGetByIp(RouterIp, out var gateway));
         gateway!.MacKey = 0;               // simulate mid-session gateway MAC loss
 

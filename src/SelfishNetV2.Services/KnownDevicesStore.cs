@@ -107,8 +107,14 @@ public sealed class KnownDevicesStore
             string ip = NetKeys.FormatIp(dev.IpKey);
             Entry? best = null;
             bool bestHasSettings = false;
-            foreach (var candidate in _map.Values)
+            foreach (var kv in _map)
             {
+                var candidate = kv.Value;
+                // Both sides must look like randomized addresses, and the old
+                // sighting must be recent; otherwise this is DHCP reuse.
+                if (!NetKeys.IsLocallyAdministered(NetKeys.ParseMac(kv.Key)) ||
+                    candidate.LastSeenUtc < DateTime.UtcNow.AddDays(-30))
+                    continue;
                 if (string.IsNullOrEmpty(candidate.LastIp) ||
                     !string.Equals(candidate.LastIp, ip, StringComparison.OrdinalIgnoreCase))
                     continue;

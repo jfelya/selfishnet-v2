@@ -40,7 +40,12 @@ public abstract class EngineSessionBase : IEngineSession
     private Thread? _spoofThread;
     private Thread? _statsThread;
     private Thread? _janitorThread;
+    private Task? _sweepTask;
+    private CancellationTokenSource? _sweepCts;
+    private int _sweepGeneration;
+    private bool _spoofAbandoned;
     private readonly ManualResetEventSlim _spoofWake = new(false);
+    private readonly ManualResetEventSlim _firstSpoofBurst = new(false);
     private readonly byte[] _txBuffer = new byte[65535]; // forwarder scratch (single-threaded per session)
     private readonly byte[] _probeBuffer = new byte[ArpFrameBuilder.FrameLength]; // janitor thread only
     private bool _abiArpFrameChecked, _abiIpFrameChecked;
@@ -101,6 +106,9 @@ public abstract class EngineSessionBase : IEngineSession
     /// <summary>Delay between ARP requests (original pacing). Tests override to 0.</summary>
     protected virtual int DiscoveryPacingMs => 5;
 
+    /// <summary>How long a worker gets to exit; tests shorten this to exercise the leak path.</summary>
+    protected virtual int JoinTimeoutMs => 5000;
+
     protected EngineSessionBase(DeviceCatalog catalog, IPcapDriver driver)
     {
         Catalog = catalog;
@@ -116,6 +124,7 @@ public abstract class EngineSessionBase : IEngineSession
             if (_state != EngineRunState.Closed) CloseCore(healIfNeeded: true);
             _poisoned.Clear(); // any unhealed claims belong to the previous adapter/LAN
             _shuttingDown = false;
+            _spoofAbandoned = false;
             Interlocked.Exchange(ref _spoofSendFailures, 0);
             Interlocked.Exchange(ref _sendFailureReported, 0);
             Interlocked.Exchange(ref _receiveFatalReported, 0);
@@ -174,30 +183,49 @@ public abstract class EngineSessionBase : IEngineSession
         _state = EngineRunState.Closed;
         _shuttingDown = true;
         StopDiscovery();
+        _sweepCts?.Cancel();
         _shapeCts?.Cancel();
         _lifeCts?.Cancel();
         _spoofWake.Set();
 
-        bool workersJoined = JoinThread(_spoofThread);
-        _spoofThread = null;
-        _ip?.Dispose(); _ip = null;   // breakloop → join → close (inside session)
-        // Heal whenever asked — this also retries claims whose earlier heal failed
-        // (UnspoofAll is a no-op when every claim has already been resolved).
-        if (healIfNeeded)
-            UnspoofAll();
-        _poisoned.Clear();
+        bool spoofJoined = JoinThread(_spoofThread, JoinTimeoutMs);
+        if (spoofJoined) _spoofThread = null;
+        else _spoofAbandoned = true;
 
-        workersJoined &= JoinThread(_statsThread); _statsThread = null;
-        workersJoined &= JoinThread(_janitorThread); _janitorThread = null;
-        _shapeCts?.Dispose(); _shapeCts = null;
-        _lifeCts?.Dispose(); _lifeCts = null;
+        bool sweepJoined = _sweepTask == null || _sweepTask.Wait(JoinTimeoutMs);
+        if (sweepJoined)
+        {
+            _sweepTask = null;
+            _sweepCts?.Dispose();
+            _sweepCts = null;
+        }
+
+        _ip?.Dispose(); _ip = null;   // breakloop → join → close (inside session)
+
+        // Never heal while a spoof thread may still send: it could re-poison after
+        // the restore. Successful heals remove their claims; failed claims stay in
+        // the registry for a later Close retry.
+        if (healIfNeeded && spoofJoined)
+            UnspoofAll();
+        else if (spoofJoined)
+            _poisoned.Clear();
+
+        bool statsJoined = JoinThread(_statsThread, JoinTimeoutMs); _statsThread = null;
+        bool janitorJoined = JoinThread(_janitorThread, JoinTimeoutMs); _janitorThread = null;
+        bool workersJoined = spoofJoined && sweepJoined && statsJoined && janitorJoined;
+
+        if (spoofJoined) { _shapeCts?.Dispose(); _shapeCts = null; }
+        if (statsJoined && janitorJoined) { _lifeCts?.Dispose(); _lifeCts = null; }
 
         // If a worker did not join, its handle is leaked rather than closed under
-        // a thread that may still be sending. This is the same C2 rule as the
-        // receive session and only happens after a driver/thread bug.
+        // a thread that may still send. Stop the receive thread but keep the handle.
         var arp = _arp;
         _arp = null;
-        if (workersJoined) arp?.Dispose();
+        if (arp != null)
+        {
+            if (workersJoined) arp.Dispose();
+            else arp.Stop(JoinTimeoutMs);
+        }
 
         Adapter = null;
         StateChanged?.Invoke(this, EventArgs.Empty);
@@ -212,8 +240,13 @@ public abstract class EngineSessionBase : IEngineSession
         var adapter = Adapter;
         var arp = _arp;
         if (_discovering || adapter == null || arp == null) return;
+        if (_sweepTask is { IsCompleted: false }) return; // previous sweep is still winding down
+        _sweepCts?.Dispose();
         _discovering = true;
-        Task.Run(() =>
+        int generation = Interlocked.Increment(ref _sweepGeneration);
+        var cts = new CancellationTokenSource();
+        _sweepCts = cts;
+        _sweepTask = Task.Run(() =>
         {
             try
             {
@@ -221,24 +254,32 @@ public abstract class EngineSessionBase : IEngineSession
                 int sent = 0;
                 foreach (uint target in NetworkAdapterEnumerator.EnumerateSubnet(adapter.LocalIpKey, adapter.MaskKey))
                 {
-                    if (!_discovering || sent >= MaxSweepHosts) break;
+                    if (!_discovering || generation != Volatile.Read(ref _sweepGeneration) ||
+                        cts.IsCancellationRequested || sent >= MaxSweepHosts) break;
                     if (target == adapter.LocalIpKey) continue;
                     ArpFrameBuilder.BuildRequest(buf, adapter.MacKey, adapter.LocalIpKey, target);
                     SendFrame(arp, buf);
                     sent++;
-                    if (DiscoveryPacingMs > 0) Thread.Sleep(DiscoveryPacingMs);
+                    if (DiscoveryPacingMs > 0 && cts.Token.WaitHandle.WaitOne(DiscoveryPacingMs)) break;
                 }
             }
             catch { /* capture closed mid-scan is non-fatal */ }
             finally
             {
-                _discovering = false;
-                try { DiscoveryCompleted?.Invoke(this, EventArgs.Empty); } catch { }
+                if (generation == Volatile.Read(ref _sweepGeneration))
+                {
+                    _discovering = false;
+                    try { DiscoveryCompleted?.Invoke(this, EventArgs.Empty); } catch { }
+                }
             }
         });
     }
 
-    public void StopDiscovery() => _discovering = false;
+    public void StopDiscovery()
+    {
+        _discovering = false;
+        _sweepCts?.Cancel();
+    }
 
     // ================= ARP listener (original arpListener) =================
 
@@ -317,6 +358,11 @@ public abstract class EngineSessionBase : IEngineSession
             return false;
         }
         if (_state == EngineRunState.Shaping) return true;
+        if (_spoofAbandoned || _spoofThread is { IsAlive: true })
+        {
+            RaiseError(EngineErrorKind.Internal, "the previous spoof thread has not stopped");
+            return false;
+        }
 
         // A gateway is required for shaping. Without this guard the app would start
         // capturing/counting but silently never spoof (the old behaviour on VPN or
@@ -338,46 +384,107 @@ public abstract class EngineSessionBase : IEngineSession
             }
         }
 
-        try
+        lock (_lifecycle)
         {
-            var ipCap = Driver.OpenLive(adapter.PcapName, IpFilter, timeoutMs: ArpTimeoutMs);
-            var session = new PcapCaptureSession(ipCap, "ip");
-            ConfigureIpCapture(session);
-            session.PacketReceived += OnIpFrame;
-            session.ReceiveError += OnReceiveError;
+            // The close may have happened while the gateway await was in flight.
+            if (_state == EngineRunState.Closed || _shuttingDown || !ReferenceEquals(Adapter, adapter))
+                return false;
+            if (_arp is not { Running: true })
+            {
+                RaiseError(EngineErrorKind.ReceiveError, "the ARP capture is not running");
+                return false;
+            }
 
-            Interlocked.Exchange(ref _receiveFatalReported, 0);
-            _shapeCts?.Cancel(); _shapeCts?.Dispose();
-            _shapeCts = new CancellationTokenSource();
-            _spoofWake.Reset();
-            _spoofThread = new Thread(() => SpoofLoop(_shapeCts.Token)) { IsBackground = true, Name = "spoof-tx" };
-            _ip = session;
-            _spoofThread.Start();   // immediate first burst, then every 5 s
-            session.Start();
-            SetState(EngineRunState.Shaping);
-            return true;
+            PcapCaptureSession? session = null;
+            try
+            {
+                var ipCap = Driver.OpenLive(adapter.PcapName, IpFilter, timeoutMs: ArpTimeoutMs);
+                session = new PcapCaptureSession(ipCap, "ip");
+                ConfigureIpCapture(session);
+                session.PacketReceived += OnIpFrame;
+                session.ReceiveError += OnReceiveError;
+
+                Interlocked.Exchange(ref _receiveFatalReported, 0);
+                _shuttingDown = false;
+                _shapeCts?.Cancel(); _shapeCts?.Dispose();
+                _shapeCts = new CancellationTokenSource();
+                _spoofWake.Reset();
+                _firstSpoofBurst.Reset();
+                _spoofThread = new Thread(() => SpoofLoop(_shapeCts.Token)) { IsBackground = true, Name = "spoof-tx" };
+                _ip = session;
+                SetState(EngineRunState.Shaping);
+                session.Start();
+                if (!session.Running || _state != EngineRunState.Shaping || _shuttingDown)
+                {
+                    AbortStart(session);
+                    return false;
+                }
+                _spoofThread.Start();   // immediate first burst, then every 5 s
+                if (!_firstSpoofBurst.Wait(2000) || _state != EngineRunState.Shaping || _shuttingDown)
+                {
+                    AbortStart(session);
+                    return false;
+                }
+                return true;
+            }
+            catch (PcapException ex)
+            {
+                AbortStart(session);
+                RaiseError(DriverAccessProbe.LooksLikeAccessDenied(ex.Message)
+                        ? EngineErrorKind.AccessDenied
+                        : EngineErrorKind.DriverOpen,
+                    ex.Message);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                AbortStart(session);
+                RaiseError(EngineErrorKind.Internal, ex.Message);
+                return false;
+            }
         }
-        catch (PcapException ex)
+    }
+
+    private void AbortStart(PcapCaptureSession? session)
+    {
+        _shuttingDown = true;
+        _shapeCts?.Cancel();
+        _spoofWake.Set();
+        bool joined = JoinThread(_spoofThread, JoinTimeoutMs);
+        if (joined) _spoofThread = null;
+        else _spoofAbandoned = true;
+        if (ReferenceEquals(_ip, session))
         {
-            RaiseError(DriverAccessProbe.LooksLikeAccessDenied(ex.Message)
-                    ? EngineErrorKind.AccessDenied
-                    : EngineErrorKind.DriverOpen,
-                ex.Message);
-            return false;
+            _ip = null;
+            session?.Dispose();
         }
+        if (joined) UnspoofAll();
+        if (joined) _shuttingDown = false;
+        if (_state != EngineRunState.Closed) SetState(EngineRunState.Idle);
     }
 
     public Task StopAndHealAsync() => Task.Run(() =>
     {
         lock (_lifecycle)
         {
-            if (_state != EngineRunState.Shaping) return;
+            if (_state != EngineRunState.Shaping && _poisoned.IsEmpty) return;
             SetState(EngineRunState.Idle);
+            _shuttingDown = true;
             _shapeCts?.Cancel();   // wake the spoof loop out of its wait…
             _spoofWake.Set();
-            JoinThread(_spoofThread); _spoofThread = null;
+            bool joined = JoinThread(_spoofThread, JoinTimeoutMs);
+            if (joined) _spoofThread = null;
+            else _spoofAbandoned = true;
             _ip?.Dispose(); _ip = null;   // breakloop → join → close
-            UnspoofAll();
+            if (joined)
+            {
+                UnspoofAll();
+                _shuttingDown = false;
+            }
+            else
+            {
+                RaiseError(EngineErrorKind.Internal, "the spoof thread did not stop; network restoration will retry on close");
+            }
         }
     });
 
@@ -399,6 +506,12 @@ public abstract class EngineSessionBase : IEngineSession
     /// <summary>One re-poison round over every targeted device (original Spoof per victim).</summary>
     protected virtual void SendSpoofBurst()
     {
+        try { SendSpoofBurstCore(); }
+        finally { _firstSpoofBurst.Set(); }
+    }
+
+    private void SendSpoofBurstCore()
+    {
         if (_shuttingDown) return;
         var adapter = Adapter;
         var arp = _arp;
@@ -418,11 +531,15 @@ public abstract class EngineSessionBase : IEngineSession
                 HealOne(kv.Key, kv.Value);
         }
 
+        // Record every claim before sending: Stop/Close can arrive while the first
+        // send is still in flight and must still know what to heal.
+        foreach (var v in targets) _poisoned[v.IpKey] = v.MacKey;
+        _firstSpoofBurst.Set();
+
         Span<byte> buf = stackalloc byte[ArpFrameBuilder.FrameLength];
         foreach (var v in targets)
         {
             if (_shuttingDown) break;
-            _poisoned[v.IpKey] = v.MacKey;
             // 1. to victim: "router is at us"
             ArpFrameBuilder.BuildPoison(buf, adapter.MacKey, adapter.GatewayIpKey, v.MacKey, v.IpKey);
             SendFrame(arp, buf, reportFailure: true);
@@ -468,15 +585,16 @@ public abstract class EngineSessionBase : IEngineSession
         }
         try
         {
+            bool sent = true;
             Span<byte> buf = stackalloc byte[ArpFrameBuilder.FrameLength];
             for (int i = 0; i < UnspoofRepetitions; i++)
             {
                 // victim learns the router's real MAC
                 ArpFrameBuilder.BuildRestore(buf, routerMac, adapter.GatewayIpKey, macKey, ipKey);
-                SendWithRetry(arp, buf);
+                sent &= SendWithRetry(arp, buf);
                 // router learns the victim's real MAC
                 ArpFrameBuilder.BuildRestore(buf, macKey, ipKey, routerMac, adapter.GatewayIpKey);
-                SendWithRetry(arp, buf);
+                sent &= SendWithRetry(arp, buf);
                 // Pace the burst: Realtek/Npcap rejects very dense send bursts (error 31).
                 Thread.Sleep(4);
             }
@@ -485,10 +603,15 @@ public abstract class EngineSessionBase : IEngineSession
             for (int i = 0; i < 3; i++)
             {
                 ArpFrameBuilder.BuildGratuitousBroadcast(buf, routerMac, adapter.GatewayIpKey);
-                SendWithRetry(arp, buf);
+                sent &= SendWithRetry(arp, buf);
                 ArpFrameBuilder.BuildGratuitousBroadcast(buf, macKey, ipKey);
-                SendWithRetry(arp, buf);
+                sent &= SendWithRetry(arp, buf);
                 Thread.Sleep(4);
+            }
+            if (!sent)
+            {
+                _poisoned[ipKey] = macKey; // keep it so a later close retries
+                return false;
             }
             return true;
         }
@@ -528,11 +651,11 @@ public abstract class EngineSessionBase : IEngineSession
         }
     }
 
-    private void SendWithRetry(PcapCaptureSession session, ReadOnlySpan<byte> frame)
+    private bool SendWithRetry(PcapCaptureSession session, ReadOnlySpan<byte> frame)
     {
-        if (SendFrame(session, frame)) return;
+        if (SendFrame(session, frame)) return true;
         Thread.Sleep(15); // Win32 error 31 ("device not functioning") is transient under burst
-        SendFrame(session, frame);
+        return SendFrame(session, frame);
     }
 
     /// <summary>
@@ -727,13 +850,15 @@ public abstract class EngineSessionBase : IEngineSession
     /// no longer forwards their traffic. Stop and heal once, off the capture thread.</summary>
     private void OnReceiveError(string detail)
     {
-        RaiseError(EngineErrorKind.ReceiveError, detail);
-        if (Interlocked.Exchange(ref _receiveFatalReported, 1) != 0) return;
-        _ = Task.Run(async () =>
+        if (Interlocked.Exchange(ref _receiveFatalReported, 1) == 0)
         {
-            try { await StopAndHealAsync().ConfigureAwait(false); }
-            catch { /* best effort: Close still retries any outstanding claims */ }
-        });
+            _ = Task.Run(async () =>
+            {
+                try { await StopAndHealAsync().ConfigureAwait(false); }
+                catch { /* best effort: Close still retries any outstanding claims */ }
+            });
+        }
+        try { RaiseError(EngineErrorKind.ReceiveError, detail); } catch { }
     }
 
     private static bool JoinThread(Thread? t, int timeoutMs = 5000)

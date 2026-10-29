@@ -14,10 +14,23 @@ public sealed class AdapterService
     /// <summary>Usable adapters matched against the driver's device list (gateway-having first).</summary>
     public List<AdapterInfo> GetUsableAdapters()
     {
-        IReadOnlyList<string> pcapNames = _driver?.EnumerateDevices()
-            .Select(d => d.Name).ToList() ?? (IReadOnlyList<string>)Array.Empty<string>();
-        return NetworkAdapterEnumerator.GetUsableAdapters(pcapNames);
+        IReadOnlyList<string> pcapNames = PcapNames();
+        return NetworkAdapterEnumerator.GetUsableAdapters(pcapNames)
+            .Where(a => !string.IsNullOrWhiteSpace(a.PcapName))
+            .ToList();
     }
+
+    /// <summary>True when a NIC exists but none has a matching pcap device. Used to
+    /// show a precise message instead of the generic “no adapter” text.</summary>
+    public bool HasAdapterWithoutPcapBinding()
+    {
+        var all = NetworkAdapterEnumerator.GetUsableAdapters(PcapNames());
+        return all.Count > 0 && all.All(a => string.IsNullOrWhiteSpace(a.PcapName));
+    }
+
+    private IReadOnlyList<string> PcapNames() =>
+        _driver?.EnumerateDevices().Select(d => d.Name).ToList()
+        ?? (IReadOnlyList<string>)Array.Empty<string>();
 
     /// <summary>
     /// Read-only status for the About window. Windows' legacy IP forwarding

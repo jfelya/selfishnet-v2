@@ -1,7 +1,7 @@
 # src/ — Clean Rebuild
 
 Stack: **C# / .NET 8 / WPF**, self-contained single-file builds for `win-x64` and `win-x86`.
-Implemented end-to-end; the solution builds clean and all 115 tests pass.
+Implemented end-to-end; the solution builds clean and all 124 tests pass.
 
 ```powershell
 dotnet build SelfishNetV2.sln -c Release
@@ -16,7 +16,7 @@ Layout:
 src/
   SelfishNetV2.sln
   SelfishNetV2.Core/          # DTOs, DeviceCatalog, ArpFrameBuilder, TokenBucket
-  SelfishNetV2.Drivers/       # IPcapDriver, WpcapDriver, LoopbackDriver, PcapHandleGuard, ABI self-test
+  SelfishNetV2.Drivers/       # IPcapDriver, WpcapDriver, LoopbackDriver, PcapCaptureSession, ABI self-test
   SelfishNetV2.Engines/       # IEngineSession, LegacyEngine, ModernEngine, EngineOrchestrator glue
   SelfishNetV2.Services/      # Localization, Settings, KnownDevices, SpeedFormatter
   SelfishNetV2.App/           # WPF shell (dark/light themes, live bandwidth charts)

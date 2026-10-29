@@ -47,7 +47,7 @@ public class CaptureSafetyTests
             session.Start();
             Assert.True(WaitUntil(() => capture.ReceiveStarted, 2000));
 
-            session.Stop(50);
+            Assert.False(session.Stop(50));
             session.Dispose();
 
             Assert.False(capture.Disposed,
@@ -95,6 +95,92 @@ public class CaptureSafetyTests
             $"engine state was {engine.State}");
         Assert.True(driver.SentFrames.Count(IsRestoreToVictim) > before,
             "a fatal receive error must heal the devices we poisoned");
+    }
+
+    [Fact]
+    public void SweepClose_DoesNotDisposeArpCapture()
+    {
+        var driver = new BlockingSendDriver();
+        var catalog = new DeviceCatalog();
+        using var engine = new FastJoinEngine(catalog, driver);
+        Assert.True(engine.Open(Adapter));
+        driver.ArmSend();
+        engine.StartDiscovery();
+        Assert.True(WaitUntil(() => driver.ArpCapture!.SendStarted, 2000));
+
+        engine.Close();
+
+        Assert.False(driver.ArpCapture!.Disposed,
+            "a capture used by a still-running sweep must be leaked, not closed");
+        driver.ReleaseSend();
+    }
+
+    [Fact]
+    public async Task ImmediateIpError_DoesNotStayShaping()
+    {
+        var driver = new ImmediateIpErrorDriver();
+        var catalog = new DeviceCatalog();
+        using var engine = new ModernEngine(catalog, driver);
+        Assert.True(engine.Open(Adapter));
+        driver.Inject(ArpReply(Router, RouterIp, Local, LocalIp));
+        driver.Inject(ArpReply(Victim, VictimIp, Local, LocalIp));
+        Assert.True(WaitUntil(() =>
+            catalog.TryGetByIp(RouterIp, out var gw) && gw.HasKnownMac &&
+            catalog.TryGetByIp(VictimIp, out var v) && v.HasKnownMac));
+
+        await engine.StartShapingAsync();
+
+        Assert.True(WaitUntil(() => engine.State != EngineRunState.Shaping, 3000),
+            $"engine state was {engine.State}");
+    }
+
+    [Fact]
+    public async Task FailedHeal_KeepsClaimForCloseRetry()
+    {
+        var driver = new FailingSendDriver();
+        var catalog = new DeviceCatalog();
+        using var engine = new ModernEngine(catalog, driver);
+        Assert.True(engine.Open(Adapter));
+        driver.Inject(ArpReply(Router, RouterIp, Local, LocalIp));
+        driver.Inject(ArpReply(Victim, VictimIp, Local, LocalIp));
+        Assert.True(WaitUntil(() =>
+            catalog.TryGetByIp(RouterIp, out var gw) && gw.HasKnownMac &&
+            catalog.TryGetByIp(VictimIp, out var v) && v.HasKnownMac));
+
+        driver.FailSends = true;
+        Assert.True(await engine.StartShapingAsync());
+        await engine.StopAndHealAsync();
+        Assert.Equal(0, driver.SentFrames.Count(IsRestoreToVictim));
+
+        driver.FailSends = false;
+        engine.Close();
+        Assert.True(WaitUntil(() => driver.SentFrames.Count(IsRestoreToVictim) >= 35, 3000),
+            "a failed heal claim must be retried on close");
+    }
+
+    [Fact]
+    public async Task StuckSpoofSend_IsLeakedNotClosed()
+    {
+        var driver = new BlockingSendDriver();
+        var catalog = new DeviceCatalog();
+        using var engine = new FastJoinEngine(catalog, driver);
+        Assert.True(engine.Open(Adapter));
+        driver.Inject(ArpReply(Router, RouterIp, Local, LocalIp));
+        driver.Inject(ArpReply(Victim, VictimIp, Local, LocalIp));
+        Assert.True(WaitUntil(() =>
+            catalog.TryGetByIp(RouterIp, out var gw) && gw.HasKnownMac &&
+            catalog.TryGetByIp(VictimIp, out var v) && v.HasKnownMac));
+
+        driver.ArmSend();
+        Assert.True(await engine.StartShapingAsync());
+        Assert.True(WaitUntil(() => driver.ArpCapture!.SendStarted, 2000));
+
+        await engine.StopAndHealAsync();
+        engine.Close();
+
+        Assert.False(driver.ArpCapture!.Disposed,
+            "a capture used by a stuck spoof send must be leaked, not closed");
+        driver.ReleaseSend();
     }
 
     private static bool IsRestoreToVictim(byte[] f)
@@ -204,5 +290,124 @@ public class CaptureSafetyTests
         public void BreakLoop() => _inner.BreakLoop();
         public void TrySetMinToCopy(int bytes) => _inner.TrySetMinToCopy(bytes);
         public void Dispose() => _inner.Dispose();
+    }
+
+    private sealed class FastJoinEngine : ModernEngine
+    {
+        public FastJoinEngine(DeviceCatalog catalog, IPcapDriver driver) : base(catalog, driver) { }
+        protected override int JoinTimeoutMs => 50;
+        protected override int AutoScanIntervalMs => 0;
+    }
+
+    private sealed class ImmediateIpErrorDriver : IPcapDriver
+    {
+        private readonly LoopbackDriver _inner = new();
+        public string BackendName => "Loopback/immediate-error";
+        public IReadOnlyList<PcapDeviceInfo> EnumerateDevices() => _inner.EnumerateDevices();
+        public void Inject(ReadOnlySpan<byte> frame) => _inner.Inject(frame);
+
+        public IPcapCapture OpenLive(string deviceName, string? filter, int snaplen = 65535,
+            int promisc = 0, int timeoutMs = 20)
+        {
+            if (filter == "ip or (vlan and ip)") return new FaultingCapture();
+            return _inner.OpenLive(deviceName, filter, snaplen, promisc, timeoutMs);
+        }
+    }
+
+    private sealed class FailingSendDriver : IPcapDriver
+    {
+        private readonly LoopbackDriver _inner = new();
+        public bool FailSends { get; set; }
+        public string BackendName => "Loopback/failing-send";
+        public IReadOnlyList<PcapDeviceInfo> EnumerateDevices() => _inner.EnumerateDevices();
+        public IReadOnlyList<byte[]> SentFrames => _inner.SentFrames;
+        public void Inject(ReadOnlySpan<byte> frame) => _inner.Inject(frame);
+
+        public IPcapCapture OpenLive(string deviceName, string? filter, int snaplen = 65535,
+            int promisc = 0, int timeoutMs = 20)
+        {
+            var capture = _inner.OpenLive(deviceName, filter, snaplen, promisc, timeoutMs);
+            return filter == "arp" ? new FailableSendCapture(capture, this) : capture;
+        }
+    }
+
+    private sealed class FailableSendCapture : IPcapCapture
+    {
+        private readonly IPcapCapture _inner;
+        private readonly FailingSendDriver _owner;
+
+        public FailableSendCapture(IPcapCapture inner, FailingSendDriver owner)
+        {
+            _inner = inner;
+            _owner = owner;
+        }
+
+        public string DeviceName => _inner.DeviceName;
+        public string LastError => _inner.LastError;
+        public int Send(ReadOnlySpan<byte> frame) => _owner.FailSends ? -1 : _inner.Send(frame);
+        public ReceiveResult Receive(out PacketView view) => _inner.Receive(out view);
+        public void BreakLoop() => _inner.BreakLoop();
+        public void TrySetMinToCopy(int bytes) => _inner.TrySetMinToCopy(bytes);
+        public void Dispose() => _inner.Dispose();
+    }
+
+    private sealed class BlockingSendDriver : IPcapDriver
+    {
+        private readonly LoopbackDriver _inner = new();
+        public BlockingSendCapture? ArpCapture { get; private set; }
+        public string BackendName => "Loopback/blocking-send";
+        public IReadOnlyList<PcapDeviceInfo> EnumerateDevices() => _inner.EnumerateDevices();
+        public void Inject(ReadOnlySpan<byte> frame) => _inner.Inject(frame);
+        public void ArmSend() => ArpCapture?.Arm();
+        public void ReleaseSend() => ArpCapture?.ReleaseSend();
+
+        public IPcapCapture OpenLive(string deviceName, string? filter, int snaplen = 65535,
+            int promisc = 0, int timeoutMs = 20)
+        {
+            var capture = _inner.OpenLive(deviceName, filter, snaplen, promisc, timeoutMs);
+            if (filter == "arp")
+            {
+                ArpCapture = new BlockingSendCapture(capture);
+                return ArpCapture;
+            }
+            return capture;
+        }
+    }
+
+    private sealed class BlockingSendCapture : IPcapCapture
+    {
+        private readonly IPcapCapture _inner;
+        private readonly ManualResetEventSlim _sendGate = new(false);
+        private readonly ManualResetEventSlim _sendStarted = new(false);
+        private volatile bool _armed;
+
+        public BlockingSendCapture(IPcapCapture inner) => _inner = inner;
+        public string DeviceName => _inner.DeviceName;
+        public string LastError => _inner.LastError;
+        public bool Disposed { get; private set; }
+        public bool SendStarted => _sendStarted.IsSet;
+
+        public void Arm() => _armed = true;
+
+        public int Send(ReadOnlySpan<byte> frame)
+        {
+            if (_armed)
+            {
+                _sendStarted.Set();
+                _sendGate.Wait();
+            }
+            return _inner.Send(frame);
+        }
+
+        public void ReleaseSend() => _sendGate.Set();
+        public ReceiveResult Receive(out PacketView view) => _inner.Receive(out view);
+        public void BreakLoop() => _inner.BreakLoop();
+        public void TrySetMinToCopy(int bytes) => _inner.TrySetMinToCopy(bytes);
+
+        public void Dispose()
+        {
+            Disposed = true;
+            _inner.Dispose();
+        }
     }
 }

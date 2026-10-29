@@ -55,7 +55,7 @@ public sealed class PcapCaptureSession : IDisposable
                 try { rc = _capture.Receive(out view); }
                 catch (Exception ex)
                 {
-                    if (_running) ReceiveError?.Invoke(ex.Message);
+                    if (_running) { try { ReceiveError?.Invoke(ex.Message); } catch { } }
                     break;
                 }
                 switch (rc)
@@ -69,7 +69,7 @@ public sealed class PcapCaptureSession : IDisposable
                     case ReceiveResult.Broken:
                         return;  // breakloop during shutdown
                     case ReceiveResult.Error:
-                        if (_running) ReceiveError?.Invoke(_capture.LastError);
+                        if (_running) { try { ReceiveError?.Invoke(_capture.LastError); } catch { } }
                         return;
                 }
             }
@@ -99,7 +99,8 @@ public sealed class PcapCaptureSession : IDisposable
     }
 
     /// <summary>Send a frame on this session's handle (thread-safe).</summary>
-    public int Send(ReadOnlySpan<byte> frame) => _capture.Send(frame);
+    public int Send(ReadOnlySpan<byte> frame) =>
+        _disposed || _abandoned ? -1 : _capture.Send(frame);
 
     public void TrySetMinToCopy(int bytes) => _capture.TrySetMinToCopy(bytes);
 

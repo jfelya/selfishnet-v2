@@ -41,7 +41,7 @@ single elevated restart only if the driver is restricted.
 | Auto-discovery (60 s background sweep + passive ARP learning) | ✅ |
 | Robust healing (registry-backed, broadcast gratuitous, gateway re-resolve) | ✅ |
 | Reactive ARP defense (Modern engine) | ✅ |
-| Automated tests | ✅ 115/115 green |
+| Automated tests | ✅ 124/124 green |
 
 **Portable build:** run `src/publish.bat` → two self-contained exes in
 `publish/x64/SelfishNetV2.exe` and `publish/x86/SelfishNetV2.exe`. The copies at the
@@ -101,7 +101,7 @@ install is needed — copy one anywhere.
 
 ```powershell
 dotnet build src/SelfishNetV2.sln -c Release      # build everything
-dotnet test  src/SelfishNetV2.sln -c Release      # 115 tests (no hardware/admin needed)
+dotnet test  src/SelfishNetV2.sln -c Release      # 124 tests (no hardware/admin needed)
 src/publish.bat                                    # self-contained exes (x64 + x86)
 tools\clean.cmd                                    # reclaim build output (~1 GB after publishing)
 ```

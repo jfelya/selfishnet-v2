@@ -110,9 +110,11 @@ public sealed class DeviceViewModel : ObservableObject
         string cleaned = (text ?? "").Trim();
         if (cleaned == "<1") return currentBytes; // unchanged sub-unit display
         if (cleaned.Length == 0) return 0;
-        return decimal.TryParse(cleaned, out decimal value) && value > 0
-            ? SpeedFormatter.FromCapDisplay(value, _host.Units)
-            : 0;
+        if (decimal.TryParse(cleaned, out decimal value) && value > 0)
+            return SpeedFormatter.FromCapDisplay(value, _host.Units);
+        // The editor accepts digits only. A numeric string too large for decimal
+        // is still a cap, not "unlimited".
+        return cleaned.All(char.IsDigit) ? int.MaxValue : 0;
     }
 
     public bool Blocked

@@ -23,12 +23,12 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 - **Defaults:** Spanish UI + dark theme, window starts maximized.
 - **Only external prerequisite:** Npcap (or legacy WinPcap). The app itself needs no installer.
 
-## 2. Current state (verified 2026-10-19)
+## 2. Current state (verified 2026-10-28)
 
 | Item | State |
 |---|---|
 | Build | `dotnet build src/SelfishNetV2.sln -c Release` → 0 warnings, 0 errors |
-| Tests | **115/115 green** in ~15 s (no hardware, no admin) |
+| Tests | **124/124 green** in ~15 s (no hardware, no admin) |
 | Field test | Real LAN: both engines limited a phone; runtime engine switch worked; healing worked |
 | Artifacts | `SelfishNetV2-x64.exe` 68.5 MB · `-x86.exe` 63.3 MB (project root) |
 | OS support | Windows 10 1607 → 22H2 and all Windows 11 releases; floor declared and guard-tested |
@@ -42,18 +42,19 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 - Approved plan: `docs/superpowers/plans/2026-10-28-revamp-hardening.md`.
 - Sequence: Must-fix tasks 1–2, persistence task 3, discovery/input task 4,
   display/performance task 5, hygiene/docs task 6, final verification task 7.
-- Current status: **Tasks 1–6 complete** — capture shutdown is fail-safe, fatal
-  receive errors stop shaping and heal, catalog clears remove UI rows, saved caps
-  render on first load, and an unmatched pcap GUID is rejected. Device memory now
-  writes atomically (with `.bak` recovery), inherits by IP only for randomized
-  MACs, ignores late DNS after a user edit, and resets limits with one disk write.
-  Discovery is capped at 4,096 hosts per sweep, reports completion so the status
-  clears, and cap entry clamps overflow and shows sub-unit caps as `<1`. Catalog
-  update events now fire only on identity changes, and the chart uses one shared
-  scale for both series and the axis. A named mutex prevents two copies from
-  shaping the same LAN; test packages are current and vulnerability-free; dead
-  members are removed and the current docs/guides match the code. Full suite:
-  115/115 green.
+- Current status: **Tasks 1–6 complete; final-review fix pass applied.** Capture
+  shutdown is fail-safe (a stuck spoof/sweep is leaked, not closed), fatal receive
+  errors stop shaping and heal, catalog clears remove UI rows, saved caps render on
+  first load, and an unmatched pcap GUID is rejected. Device memory writes
+  atomically with `.bak` recovery; in-session global-MAC replacement resets old
+  policy; same-IP inheritance requires randomized MACs and a recent sighting; late
+  DNS cannot overwrite a user edit. Discovery is capped, starts at the local
+  address, reports completion, and cap entry clamps overflow/sub-unit values.
+  Catalog updates fire only on identity changes; the chart shares one scale; a
+  named mutex prevents two copies; adapter errors are specific; failed heals keep
+  their claim for a close retry; logoff teardown is bounded. Test packages are
+  current and vulnerability-free; docs/guides are current. Full suite: **124/124
+  green**.
 - Standing user requests: keep this file's storyline current after every
   milestone; update `GUIDE_EN.txt` / `GUIDE_ES.txt` when behavior changes; do not
   commit new root executables until the fixes are confirmed stable; remove
@@ -63,7 +64,7 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 
 ```powershell
 dotnet build src/SelfishNetV2.sln -c Release      # build everything
-dotnet test  src/SelfishNetV2.sln -c Release      # 115 tests, no hardware/admin needed
+dotnet test  src/SelfishNetV2.sln -c Release      # 124 tests, no hardware/admin needed
 src\publish.bat                                    # → publish\{x64,x86}\SelfishNetV2.exe
 tools\clean.cmd                                    # reclaim build output (~1 GB after publishing)
 ```
@@ -138,7 +139,7 @@ SelfishNet v2/
 │   ├── SelfishNetV2.Engines/        #   IEngineSession, EngineSessionBase, LegacyEngine, ModernEngine
 │   ├── SelfishNetV2.Services/       #   Localization, Settings, KnownDevices, EngineOrchestrator, formatter
 │   ├── SelfishNetV2.App/            #   WPF shell: Themes/, Theming/, Controls/, ViewModels/, Views/
-│   ├── SelfishNetV2.Tests/          #   115 tests
+│   ├── SelfishNetV2.Tests/          #   124 tests
 │   ├── Directory.Build.targets      #   OS floor + WinRT projection exclusion
 │   └── publish.bat                  #   2-arch self-contained publish (x64 + x86)
 ├── tools/                           # clean.cmd/ps1 + README
@@ -182,7 +183,7 @@ Rules adopted (keep them):
 6. Failure paths are tested on `LoopbackDriver` — no hardware required.
 7. Promises stay scoped (healing is best-effort; say so).
 
-## 8. Test map (115 tests)
+## 8. Test map (124 tests)
 
 | File | Guards |
 |---|---|
@@ -242,16 +243,19 @@ Rules adopted (keep them):
     System/Traffic-control sections, larger Medium typography, live diagnostics, a **read-only**
     OS-forwarding row (IPEnableRouter) with a short explanatory hint, and a "Copy details" button.
     The OS-forwarding check exists only for this display — nothing warns or blocks on it.
-13. **Hardening workstream (2026-10-28, in progress)** — a full audit found shutdown
-    timeout hazards, a fatal-capture-error path that left victims disconnected, stale UI
-    state after adapter switches, saved caps not shown, unsafe IP-reuse inheritance,
-    non-atomic settings writes, and unbounded discovery. The approved plan is
-    `docs/superpowers/plans/2026-10-28-revamp-hardening.md`; Tasks 1–6 (fail-safe
-    capture shutdown/fatal errors, catalog/UI identity, atomic device memory,
-    bounded discovery/cap entry, update churn/chart scale, single instance and
-    docs) are complete. Full suite: 115/115; test packages have no known
-    vulnerabilities. The root executables were intentionally not rebuilt or
-    committed during hardening; update them only after a stable release check.
+13. **Hardening workstream (2026-10-28, complete pending integration)** — a full audit
+    found shutdown timeout hazards, a fatal-capture-error path that left victims
+    disconnected, stale UI state after adapter switches, saved caps not shown, unsafe
+    IP-reuse inheritance, non-atomic settings writes, and unbounded discovery. The
+    approved plan is `docs/superpowers/plans/2026-10-28-revamp-hardening.md`; Tasks
+    1–6 and the fresh-review fix pass are complete. The review added: stuck spoof
+    threads and discovery sweeps are leaked/stopped instead of closing a live handle,
+    in-session global-MAC replacement resets old policy, failed heals retain their
+    claim, logoff teardown is bounded, discovery starts at the local /24, and adapter
+    selection surfaces a specific no-Npcap message. Full suite: **124/124**; test
+    packages have no known vulnerabilities. The root executables were intentionally
+    not rebuilt or committed during hardening; update them only after a stable
+    release check.
 
 ## 11. Backlog (see `docs/PENDING.md`)
 

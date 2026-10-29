@@ -10,8 +10,11 @@ namespace SelfishNetV2.App.Controls;
 /// </summary>
 public sealed class NumericTextBox : TextBox
 {
+    public const int MaxDigits = 12;
+
     public NumericTextBox()
     {
+        MaxLength = MaxDigits;
         PreviewTextInput += OnPreviewTextInput;
         DataObject.AddPastingHandler(this, OnPaste);
     }
@@ -31,7 +34,8 @@ public sealed class NumericTextBox : TextBox
             e.CancelCommand();
             return;
         }
-        if (!AllDigits(e.SourceDataObject.GetData(DataFormats.Text) as string))
+        string? text = e.SourceDataObject.GetData(DataFormats.Text) as string;
+        if (!AllDigits(text) || (text?.Length ?? 0) > MaxDigits)
             e.CancelCommand();
     }
 }

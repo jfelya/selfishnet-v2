@@ -201,7 +201,8 @@ public sealed class MainViewModel : ObservableObject
         var list = _adapters.GetUsableAdapters();
         if (list.Count == 0)
         {
-            MessageRequested?.Invoke(LocalizationManager.Get("MsgNoAdapter"), LocalizationManager.Get("AppTitle"), true);
+            string key = _adapters.HasAdapterWithoutPcapBinding() ? "MsgNoPcapAdapter" : "MsgNoAdapter";
+            MessageRequested?.Invoke(LocalizationManager.Get(key), LocalizationManager.Get("AppTitle"), true);
             return;
         }
         var win = new Views.AdapterWindow(list, _settings.LastAdapterId)
@@ -209,17 +210,24 @@ public sealed class MainViewModel : ObservableObject
             Owner = Application.Current.MainWindow
         };
         if (win.ShowDialog() != true || win.Selected == null) return;
-        _settings.LastAdapterId = win.Selected.Id;
-        _settings.Save();
+        var selected = win.Selected;
         IsBusy = true;
         Task.Run(() =>
         {
-            bool ok = _orch.OpenAdapter(win.Selected);
+            bool ok = _orch.OpenAdapter(selected);
             Dispatch(() =>
             {
                 IsBusy = false;
-                if (!ok) MessageRequested?.Invoke(LocalizationManager.Get("MsgDriverError", "open failed"),
-                    LocalizationManager.Get("AppTitle"), true);
+                if (ok)
+                {
+                    _settings.LastAdapterId = selected.Id;
+                    _settings.Save();
+                }
+                else
+                {
+                    MessageRequested?.Invoke(LocalizationManager.Get("MsgDriverError", "open failed"),
+                        LocalizationManager.Get("AppTitle"), true);
+                }
                 RefreshState();
             });
         });
@@ -513,12 +521,14 @@ public sealed class MainViewModel : ObservableObject
         if (_orch == null) return;
         try
         {
-            if (IsShaping)
+            // The whole teardown runs off the UI thread and is bounded as a whole,
+            // not just the first heal call.
+            var teardown = Task.Run(() =>
             {
-                var heal = _orch.StopAndHealAsync();
-                if (!heal.Wait(timeoutMs)) return; // never hang the OS shutdown
-            }
-            _orch.Dispose(); // retries any outstanding heal claims
+                _orch.StopAndHealAsync().GetAwaiter().GetResult();
+                _orch.Dispose(); // retries any outstanding heal claims
+            });
+            teardown.Wait(timeoutMs); // Windows may terminate us after the logoff deadline
         }
         catch { /* best effort during shutdown */ }
     }
@@ -541,6 +551,9 @@ public sealed class MainViewModel : ObservableObject
     public void Shutdown()
     {
         _fastTimer.Stop();
+        // SessionEnding owns a bounded background teardown; do not block logoff
+        // with a second, unbounded CloseCore on the UI thread.
+        if (IsSessionEnding) return;
         _orch?.Dispose();
     }
 
