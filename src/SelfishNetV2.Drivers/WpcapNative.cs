@@ -47,7 +47,6 @@ internal static unsafe class WpcapNative
         internal delegate* unmanaged[Cdecl]<BpfProgram*, void> FreeCode;
         internal delegate* unmanaged[Cdecl]<IntPtr, byte*> GetErr;
         internal delegate* unmanaged[Cdecl]<IntPtr, void> BreakLoop;
-        internal delegate* unmanaged[Cdecl]<IntPtr, int> DataLink;
         // Optional (present in Npcap and WinPcap ≥ 4.0; tolerated when missing):
         internal delegate* unmanaged[Cdecl]<IntPtr, int, int> SetMinToCopy;
     }
@@ -57,7 +56,7 @@ internal static unsafe class WpcapNative
         ("pcap_findalldevs", true), ("pcap_freealldevs", true), ("pcap_open_live", true),
         ("pcap_close", true), ("pcap_next_ex", true), ("pcap_sendpacket", true),
         ("pcap_compile", true), ("pcap_setfilter", true), ("pcap_freecode", true),
-        ("pcap_geterr", true), ("pcap_breakloop", true), ("pcap_datalink", true),
+        ("pcap_geterr", true), ("pcap_breakloop", true),
         ("pcap_setmintocopy", false),
     };
 
@@ -96,7 +95,6 @@ internal static unsafe class WpcapNative
                 case "pcap_freecode": api.FreeCode = (delegate* unmanaged[Cdecl]<BpfProgram*, void>)proc; break;
                 case "pcap_geterr": api.GetErr = (delegate* unmanaged[Cdecl]<IntPtr, byte*>)proc; break;
                 case "pcap_breakloop": api.BreakLoop = (delegate* unmanaged[Cdecl]<IntPtr, void>)proc; break;
-                case "pcap_datalink": api.DataLink = (delegate* unmanaged[Cdecl]<IntPtr, int>)proc; break;
                 case "pcap_setmintocopy": api.SetMinToCopy = (delegate* unmanaged[Cdecl]<IntPtr, int, int>)proc; break;
             }
         }

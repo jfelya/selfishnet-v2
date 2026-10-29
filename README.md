@@ -41,11 +41,13 @@ single elevated restart only if the driver is restricted.
 | Auto-discovery (60 s background sweep + passive ARP learning) | ✅ |
 | Robust healing (registry-backed, broadcast gratuitous, gateway re-resolve) | ✅ |
 | Reactive ARP defense (Modern engine) | ✅ |
-| Automated tests | ✅ 85/85 green |
+| Automated tests | ✅ 115/115 green |
 
-**Portable build:** run `src/publish.bat` → two self-contained exes:
-`SelfishNetV2-x64.exe` (~68 MB) and `SelfishNetV2-x86.exe` (~63 MB), also copied to the
-project root for convenience. No .NET install needed — copy one anywhere.
+**Portable build:** run `src/publish.bat` → two self-contained exes in
+`publish/x64/SelfishNetV2.exe` and `publish/x86/SelfishNetV2.exe`. The copies at the
+project root are the last confirmed release; a source build writes only to `publish/`
+until the release is tested and the root copies are updated deliberately. No .NET
+install is needed — copy one anywhere.
 
 > Why two files? A self-contained .NET app embeds its runtime, and the runtime is
 > architecture-specific, so one exe cannot cover both 32-bit and 64-bit Windows. Same
@@ -81,20 +83,25 @@ project root for convenience. No .NET install needed — copy one anywhere.
   the forwarding buffer is bounds-checked and reused, and per-packet exceptions can never kill
   the capture thread (regression-tested with a 10 000-frame 1514-byte burst).
 - **Survives MAC randomization and DHCP churn:** if a phone rotates its Wi-Fi MAC, saved limits
-  and names are matched by MAC, then by last IP, then by hostname — the cap follows the device
-  instead of getting stuck on an old entry.
+  and names are matched by MAC, then by last IP only when the new MAC is locally administered
+  (a randomized address), then by hostname. A new physical device that reuses an old DHCP lease
+  does not inherit the previous device's block or cap.
 - **No silent failures:** a gateway-less adapter is rejected with a clear message (instead of
   "starting" without spoofing), packet-send failures are surfaced, and *About* shows organized
   live diagnostics (adapter, gateway MAC, state, targets, forwarded/dropped, send failures,
   plus a read-only OS-forwarding check) with a **Copy details** button for support.
+- **One instance, fail-safe driver:** a second copy exits with a clear message. If the packet
+  capture stops with a driver error, the app stops shaping and attempts to heal instead of
+  leaving victims pointed at a PC that no longer forwards.
 - **Comfort features:** per-device speeds refresh at 4 Hz, limit boxes accept digits only and
-  commit empty as 0, and **Reset limits** returns every device to unlimited in one click.
+  commit empty as 0, **Reset limits** returns every device to unlimited in one click, and a
+  sub-1 KByte/s cap is shown as `<1` instead of looking unlimited.
 
 ## Build / test (developer)
 
 ```powershell
 dotnet build src/SelfishNetV2.sln -c Release      # build everything
-dotnet test  src/SelfishNetV2.sln -c Release      # 85 tests (no hardware/admin needed)
+dotnet test  src/SelfishNetV2.sln -c Release      # 115 tests (no hardware/admin needed)
 src/publish.bat                                    # self-contained exes (x64 + x86)
 tools\clean.cmd                                    # reclaim build output (~1 GB after publishing)
 ```

@@ -1,6 +1,10 @@
-# SelfishNet v2 — Revamp Blueprint (Rebuild-from-Zero Plan)
+# SelfishNet v2 — Revamp Blueprint (Historical Design Record)
 
-> Status: **analysis complete, awaiting stack confirmation before scaffolding `src/`.**
+> Status: **historical design record; the rebuild is complete.** Current work and
+> test counts live in `AI_ENVIRONMENT_NOTES.md`; the 2026-10-28 hardening audit and
+> plan are `docs/REVAMP_HARDENING_AUDIT.md` and
+> `docs/superpowers/plans/2026-10-28-revamp-hardening.md`. Test counts and status
+> tables in this file are kept as history, not as the current source of truth.
 > Sources: `docs/ARCHITECTURE_ANALYSIS.md`, `docs/ORIGINAL_FINDINGS.md` (corrects the former on 5 points),
 > `docs/MODERNIZATION_ROADMAP.md`, `docs/UNIT_NOTATIONS.md`, `docs/LOCALIZATION_SPEC.md`,
 > and a full static audit of `prototype/SelfishNetV2.Test`.
@@ -209,7 +213,7 @@ publish/                      # single-file .exe output
 
 ### Implementation status — COMPLETE (2026-10-19)
 
-All phases delivered; `src/SelfishNetV2.sln` builds with 0 warnings / 0 errors, **85/85 tests green**,
+All phases delivered; `src/SelfishNetV2.sln` builds with 0 warnings / 0 errors, **85/85 tests green at the time of this record**,
 two self-contained exes (x64 ~68 MB, x86 ~63 MB).
 
 | Phase | Delivered |
@@ -235,7 +239,7 @@ window includes observed (not only forwarded) bytes — both are intentional and
 | UI fixes | Readable DataGrid foreground in dark theme (was system black), two-line column headers (no truncation), single language button, unit-aware chart axes/legend, disabled flags on local/gateway rows. |
 | Packaging | Dual-arch publish (`win-x64` 68 MB / `win-x86` 63 MB); ReadyToRun disabled to cut ≈4 MB (WPF trim is unsupported). The two portable exes are versioned at the project root so a clone is ready to run. |
 
-Test count: **81/81 green** (added reactive, broadcast-heal, untarget-heal, auto-scan, burst-stress).
+Test count at the time of this record: **81/81 green** (added reactive, broadcast-heal, untarget-heal, auto-scan, burst-stress).
 
 ### Data retention (verified against the implementation, 2026-10-19)
 

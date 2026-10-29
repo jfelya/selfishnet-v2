@@ -14,10 +14,6 @@ public sealed record AdapterInfo(
     ulong MacKey,
     string PcapName)        // "" when no matching pcap device was found
 {
-    public IPAddress LocalIp => NetKeys.UIntToIp(LocalIpKey);
-    public IPAddress Mask => NetKeys.UIntToIp(MaskKey);
-    public IPAddress? GatewayIp => GatewayIpKey == 0 ? null : NetKeys.UIntToIp(GatewayIpKey);
-    public PhysicalAddress Mac => NetKeys.UInt64ToMac(MacKey);
     public string MacText => NetKeys.FormatMac(MacKey);
 }
 

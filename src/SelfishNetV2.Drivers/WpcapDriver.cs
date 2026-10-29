@@ -29,10 +29,8 @@ public sealed class WpcapDriver : IPcapDriver
                 // pcap_if_t: next | name* | description* | addresses* | flags (offsets scale with IntPtr.Size)
                 IntPtr next = Marshal.ReadIntPtr(cur, 0);
                 IntPtr namePtr = Marshal.ReadIntPtr(cur, IntPtr.Size);
-                IntPtr descPtr = Marshal.ReadIntPtr(cur, IntPtr.Size * 2);
                 string name = Marshal.PtrToStringAnsi(namePtr) ?? "";
-                string desc = descPtr != IntPtr.Zero ? Marshal.PtrToStringAnsi(descPtr) ?? "" : "";
-                if (name.Length > 0) result.Add(new PcapDeviceInfo(name, desc));
+                if (name.Length > 0) result.Add(new PcapDeviceInfo(name));
                 cur = next;
             }
         }
@@ -60,11 +58,9 @@ internal sealed unsafe class WpcapCapture : IPcapCapture
         _api = api;
         _handle = handle;
         DeviceName = deviceName;
-        DataLink = api.DataLink(handle);
     }
 
     public string DeviceName { get; }
-    public int DataLink { get; }
     public string LastError => _lastError;
 
     internal static WpcapCapture Open(WpcapNative.Api api, string deviceName, string? filter,
@@ -142,7 +138,7 @@ internal sealed unsafe class WpcapCapture : IPcapCapture
                 uint len = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(h.Slice(12, 4));
                 int n = (int)Math.Min(capLen, len);
                 if (n < 0 || data == IntPtr.Zero) { _lastError = "malformed pcap header"; return ReceiveResult.Error; }
-                view = new PacketView(new ReadOnlySpan<byte>((void*)data, n), (int)len);
+                view = new PacketView(new ReadOnlySpan<byte>((void*)data, n));
                 return ReceiveResult.Packet;
             case 0:
                 return ReceiveResult.Timeout;

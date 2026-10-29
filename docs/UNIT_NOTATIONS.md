@@ -12,7 +12,7 @@ converted and stored. Implemented in `Services/SpeedFormatter.cs`.
 
 Toolbar button shows the active system (`Units: KByte/s` / `Unidades: KBit/s`).
 Clicking it converts every speed readout and limit spinner in place.
-Choice persists in `%AppData%/SelfishNetV2.FreeModelTest/settings.json` (`UnitMode`).
+Choice persists in `%AppData%\SelfishNetV2\settings.json` (`UnitMode`).
 
 Spelled-out prefixes (`KByte`/`MByte` vs `KBit`/`MBit`) are used instead of
 `KB`/`Kb` so bytes and bits are never confused at a glance.
@@ -46,7 +46,9 @@ KBit/s     →  bytes   :  bytes = value × 1000 / 8
 ```
 
 `0` in a limit spinner always means **unlimited** (`0 (Unlimited)` / `0 (Ilimitado)`),
-in either unit system. Spinners accept whole numbers only.
+in either unit system. Spinners accept whole numbers only. A real cap below 1 KByte/s
+is displayed as `<1` in Bytes mode so it cannot be mistaken for unlimited; switch to
+Bits mode to edit it, or leave it unchanged to preserve the stored value.
 
 ## 4. Worked examples
 

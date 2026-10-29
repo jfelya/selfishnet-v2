@@ -17,7 +17,6 @@ public static class DriverLocator
 {
     public const string NpcapDir = @"C:\Windows\System32\Npcap";
     public const string NpcapWpcap = NpcapDir + @"\wpcap.dll";
-    public const string NpcapPacket = NpcapDir + @"\Packet.dll";
     public const string WinPcapWpcap = @"C:\Windows\System32\wpcap.dll";
 
     public static DriverDetection Probe()

@@ -100,6 +100,8 @@ public static class LocalizationManager
                                        "Abrir la página oficial de descarga de Npcap (npcap.com) en tu navegador"),
         ["MsgAdminRequired"] = ("Administrator privileges are required to send raw network packets.",
                                 "Se requieren permisos de Administrador para enviar paquetes de red directos."),
+        ["MsgAlreadyRunning"] = ("SelfishNet is already running. Close the other window before starting another copy.",
+                                 "SelfishNet ya está en ejecución. Cierra la otra ventana antes de iniciar otra copia."),
         ["MsgConfirmQuit"] = ("Are you sure you want to quit? Active traffic control will be stopped and ARP tables restored.",
                               "¿Seguro que deseas salir? El control de tráfico activo se detendrá y se restaurarán las tablas ARP."),
         ["MsgRestoringArp"] = ("Restoring network cache, please wait...", "Restaurando caché de red, por favor espera..."),

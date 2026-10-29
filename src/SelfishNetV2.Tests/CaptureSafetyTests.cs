@@ -113,7 +113,6 @@ public class CaptureSafetyTests
         private readonly ManualResetEventSlim _started = new(false);
 
         public string DeviceName => "blocked";
-        public int DataLink => 1;
         public string LastError => "";
         public bool ReceiveStarted => _started.IsSet;
         public bool Disposed { get; private set; }
@@ -140,7 +139,6 @@ public class CaptureSafetyTests
     private sealed class FaultingCapture : IPcapCapture
     {
         public string DeviceName => "faulted";
-        public int DataLink => 1;
         public string LastError => "injected receive error";
         public int ReceiveCount;
         public int Send(ReadOnlySpan<byte> frame) => 0;
@@ -188,7 +186,6 @@ public class CaptureSafetyTests
 
         public FailingCapture(IPcapCapture inner) => _inner = inner;
         public string DeviceName => _inner.DeviceName;
-        public int DataLink => _inner.DataLink;
         public string LastError => _failed ? "injected receive error" : _inner.LastError;
 
         public void Fail() => _failed = true;

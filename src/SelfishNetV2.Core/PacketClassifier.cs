@@ -82,9 +82,7 @@ public static class PacketClassifier
         ulong srcMac = NetKeys.MacToUInt64(frame.Slice(6, 6));
         if (srcMac == ctx.LocalMac) return PacketFlow.Own;
 
-        uint srcIp = NetKeys.IpToUInt(frame.Slice(l3Offset + 12, 4));
         uint dstIp = NetKeys.IpToUInt(frame.Slice(l3Offset + 16, 4));
-        _ = srcIp; // src IP not needed for classification (kept for debugging clarity)
 
         if (srcMac == ctx.RouterMac)
         {

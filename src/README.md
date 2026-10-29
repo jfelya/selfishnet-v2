@@ -1,7 +1,7 @@
 # src/ — Clean Rebuild
 
 Stack: **C# / .NET 8 / WPF**, self-contained single-file builds for `win-x64` and `win-x86`.
-Implemented end-to-end; the solution builds clean and all 85 tests pass.
+Implemented end-to-end; the solution builds clean and all 115 tests pass.
 
 ```powershell
 dotnet build SelfishNetV2.sln -c Release
@@ -21,7 +21,7 @@ src/
   SelfishNetV2.Services/      # Localization, Settings, KnownDevices, SpeedFormatter
   SelfishNetV2.App/           # WPF shell (dark/light themes, live bandwidth charts)
   SelfishNetV2.Tests/         # parity vectors, ABI test, shutdown hammer, fault matrix
-publish/                      # single-file portable .exe output
+..\publish\                   # single-file portable .exe output (root-level folder)
 ```
 
 Ground rules for anything added here:

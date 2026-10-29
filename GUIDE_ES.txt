@@ -119,7 +119,7 @@ Los datos persistentes de la aplicación se guardan en dos archivos:
   - %AppData%\SelfishNetV2\known_devices.json
     Guarda información de los dispositivos conocidos asociada a sus
     direcciones MAC, incluidos los nombres personalizados, los límites
-    de ancho de banda, los estados de las opciones Block y Spoof,
+    de ancho de banda, el estado de la opción Block,
     la última dirección IP conocida y la información de la última vez
     que se detectó cada dispositivo.
 
@@ -133,6 +133,8 @@ Al iniciarse, la aplicación busca dispositivos en la subred local y repite el e
 La aplicación también detecta dispositivos de forma pasiva al supervisar el tráfico ARP que ya circula por la red. Así, muchos dispositivos pueden aparecer sin necesidad de iniciar un escaneo manual.
 
 El botón Discover inicia un escaneo inmediato. Los nombres de los dispositivos se obtienen mediante consultas DNS inversas cuando están disponibles. Puedes cambiar el nombre de un dispositivo haciendo doble clic sobre su nombre. Los nombres se guardan asociados a la dirección MAC, por lo que siguen vinculados al mismo dispositivo aunque cambie su dirección IP.
+
+Cada escaneo se limita a 4.096 direcciones para que una subred muy grande no haga que la detección tarde horas. El aprendizaje ARP pasivo sigue detectando los dispositivos activos fuera de ese intervalo. La barra de estado vuelve a Listo cuando termina el escaneo.
 
 --------------------------------------------------------------------
 6. CÓMO DEJAR LA RED EN SU ESTADO ORIGINAL (RESTAURACIÓN)
@@ -174,7 +176,7 @@ Al utilizar Stop o cerrar la aplicación normalmente, SelfishNet tiene la oportu
     puede acceder al controlador y, si se deniega el acceso, ofrece
     reiniciarse con permisos de administrador.
 
-SelfishNet se distribuye como un ejecutable portátil, por lo que no requiere una instalación independiente de .NET.
+SelfishNet se distribuye como un ejecutable portátil, por lo que no requiere una instalación independiente de .NET. Solo puede ejecutarse una copia a la vez; al iniciar una segunda copia se muestra un mensaje breve y esta se cierra.
 
 --------------------------------------------------------------------
 8. LIMITACIONES Y CASOS ESPECIALES CONOCIDOS
@@ -210,6 +212,11 @@ SelfishNet se distribuye como un ejecutable portátil, por lo que no requiere un
     puerta de enlace, que podría no cubrir todas las rutas de la red.
   - La aplicación no limita el tráfico que se origina en tu propia PC
     ni el que tiene como destino esa misma computadora.
+  - Un límite inferior a 1 KByte/s se muestra como `<1` en el modo
+    KByte/s. Cambia a KBit/s para editar ese valor sin modificarlo.
+  - Si el controlador de paquetes deja de funcionar de forma inesperada,
+    la aplicación detiene el control e intenta restaurar las tablas ARP.
+    Corrige o reinstala el controlador y reinicia la aplicación.
 
 --------------------------------------------------------------------
 9. INICIO RÁPIDO
@@ -224,9 +231,7 @@ SelfishNet se distribuye como un ejecutable portátil, por lo que no requiere un
   4. Introduce los límites de descarga y subida en la tabla de
      dispositivos, o activa Block para impedir que se reenvíe el
      tráfico de un dispositivo.
-     Utiliza la casilla Spoof para incluir o excluir un dispositivo
-     del control del tráfico. De forma predeterminada, todos los
-     dispositivos están incluidos.
+     Todos los dispositivos detectados se incluyen en el control del tráfico.
   5. Presiona Start Shaping para comenzar. El indicador de estado
      se pondrá verde cuando el control del tráfico esté activo.
   6. Presiona Stop antes de cerrar la aplicación para iniciar la

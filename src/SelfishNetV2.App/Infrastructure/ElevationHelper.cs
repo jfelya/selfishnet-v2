@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using SelfishNetV2.Services;
 
 namespace SelfishNetV2.App.Infrastructure;
 
@@ -16,6 +17,8 @@ public static class ElevationHelper
         {
             string? exe = Environment.ProcessPath;
             if (string.IsNullOrEmpty(exe)) return false;
+            // The elevated process needs to take the single-instance mutex.
+            SingleInstanceGuard.Release();
             Process.Start(new ProcessStartInfo(exe)
             {
                 UseShellExecute = true,
@@ -27,7 +30,8 @@ public static class ElevationHelper
         }
         catch
         {
-            return false; // UAC cancelled (Win32 1223) or shell error
+            SingleInstanceGuard.Reacquire(); // UAC cancelled or shell error: keep this instance protected
+            return false;
         }
     }
 }

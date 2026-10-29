@@ -93,7 +93,6 @@ public sealed class MainViewModel : ObservableObject
     // ---------------- surface state ----------------
 
     public ObservableCollection<DeviceViewModel> Devices { get; }
-    public bool DriverAvailable => _orch != null;
     public string DriverProblem => _driverProblem ?? "";
     public UnitMode Units { get; private set; }
     public AppTheme Theme { get; private set; }
@@ -315,8 +314,7 @@ public sealed class MainViewModel : ObservableObject
             ForwardedUp: session?.ForwardedUp ?? 0,
             Dropped: session?.Dropped ?? 0,
             SendFailures: session?.SpoofSendFailures ?? 0,
-            OsForwarding: AdapterService.IsOsForwardingEnabled(),
-            HasSession: session != null);
+            OsForwarding: AdapterService.IsOsForwardingEnabled());
 
         new Views.AboutWindow(info) { Owner = Application.Current.MainWindow }.ShowDialog();
     }

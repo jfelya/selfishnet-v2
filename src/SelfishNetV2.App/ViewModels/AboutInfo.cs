@@ -20,5 +20,4 @@ public sealed record AboutInfo(
     long ForwardedUp,
     long Dropped,
     long SendFailures,
-    bool OsForwarding,
-    bool HasSession);
+    bool OsForwarding);

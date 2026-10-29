@@ -9,7 +9,7 @@ namespace SelfishNetV2.Tests;
 /// Guards the Windows compatibility contract.
 ///
 /// The build declares a minimum supported OS of Windows 10 1607 (build 14393) —
-/// the floor imposed by the .NET 8 runtime — via Directory.Build.props. That
+/// the floor imposed by the .NET 8 runtime — via Directory.Build.targets. That
 /// value is emitted as an assembly attribute and makes the platform analyzer
 /// (CA1416) reject any API that would not exist on that floor. Every Windows 10
 /// release from 1607 through 22H2 and every Windows 11 release is covered.

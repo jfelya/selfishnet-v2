@@ -1,6 +1,13 @@
 # Localization Architecture & Bilingual Dictionary
 ## English (US) & Latin American Spanish (Español Latinoamericano)
 
+> **Historical spec; the code is the current source of truth.** The live key/value
+> table is `src/SelfishNetV2.Services/LocalizationManager.cs` (default UI language:
+> Spanish LA). Some keys in the table below are historical: the menu keys and the
+> removed Spoof column are no longer used, and several button labels were shortened
+> during the rebuild. Update `LocalizationManager` and both guides together when a
+> user-visible string changes.
+
 This specification defines the dynamic localization subsystem for the modernized SelfishNet. The language can be toggled instantly from the UI (e.g., via a language selector dropdown, toolbar button, or hotkey) without restarting the application, interrupting background network captures, or dropping ongoing ARP spoofing/redirection sessions.
 
 ---

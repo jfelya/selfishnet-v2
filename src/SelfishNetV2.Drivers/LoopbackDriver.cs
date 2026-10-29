@@ -19,7 +19,7 @@ public sealed class LoopbackDriver : IPcapDriver
     public IReadOnlyList<byte[]> SentFrames => _sent.ToArray();
 
     public IReadOnlyList<PcapDeviceInfo> EnumerateDevices() =>
-        new List<PcapDeviceInfo> { new("loopback0", "Loopback test adapter") };
+        new List<PcapDeviceInfo> { new("loopback0") };
 
     /// <summary>Injects a frame as if it arrived from the wire (delivered to all open captures).</summary>
     public void Inject(ReadOnlySpan<byte> frame)
@@ -55,7 +55,6 @@ public sealed class LoopbackDriver : IPcapDriver
         }
 
         public string DeviceName { get; }
-        public int DataLink => 1; // Ethernet
         public string LastError { get; private set; } = "";
 
         private static Func<byte[], bool> BuildFilter(string? filter) => filter?.Trim() switch
@@ -113,7 +112,7 @@ public sealed class LoopbackDriver : IPcapDriver
                 }
                 if (_broken || _disposed) return ReceiveResult.Broken;
                 byte[] frame = _inbox.Dequeue();
-                view = new PacketView(frame, frame.Length);
+                view = new PacketView(frame);
                 return ReceiveResult.Packet;
             }
         }

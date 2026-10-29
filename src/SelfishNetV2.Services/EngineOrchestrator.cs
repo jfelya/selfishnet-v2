@@ -137,7 +137,6 @@ public sealed class EngineOrchestrator : IDisposable
             {
                 await _session.StopAndHealAsync().ConfigureAwait(false); // heal before teardown
                 _session.Close();
-                Detach(_session);
                 _session.Dispose();
                 _session = null;
             }
@@ -167,12 +166,6 @@ public sealed class EngineOrchestrator : IDisposable
         _session.DiscoveryCompleted += (s, e) => DiscoveryCompleted?.Invoke(s, e);
         _session.StatsTick += (s, e) => StatsTick?.Invoke(s, e);
         return _session;
-    }
-
-    private void Detach(IEngineSession session)
-    {
-        // events were wired with lambdas; dropping the reference is enough — but we
-        // keep a symmetric Detach for clarity and future explicit unsubscription.
     }
 
     // ---------------- catalog side-effects ----------------

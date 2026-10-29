@@ -25,6 +25,14 @@ public partial class App : Application
             : LocalizationManager.Language.SpanishLA);
         ThemeManager.Apply(settings.Theme == "Light" ? AppTheme.Light : AppTheme.Dark);
 
+        if (!SingleInstanceGuard.TryAcquire(SingleInstanceGuard.DefaultName))
+        {
+            MessageBox.Show(LocalizationManager.Get("MsgAlreadyRunning"),
+                LocalizationManager.Get("AppTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+            Shutdown();
+            return;
+        }
+
         try { PcapAbiSelfTest.ValidateStructs(); }
         catch (Exception ex)
         {
@@ -85,5 +93,11 @@ public partial class App : Application
     {
         MessageBox.Show(e.Exception.Message, "SelfishNet v2", MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        SingleInstanceGuard.Release();
+        base.OnExit(e);
     }
 }

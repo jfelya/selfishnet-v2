@@ -441,11 +441,6 @@ public abstract class EngineSessionBase : IEngineSession
         }
     }
 
-    /// <summary>Genuine restore pair for one device, <see cref="UnspoofRepetitions"/>×
-    /// (original UnSpoof), followed by broadcast gratuitous announcements so even
-    /// devices we never spoke to drop their stale entry.</summary>
-    protected void UnspoofDevice(Device victim) => HealOne(victim.IpKey, victim.MacKey);
-
     /// <summary>Robust heal for a single device. Removes it from the poisoned set FIRST
     /// (so our own restore frames can never trigger reactive re-poisoning), resolves the
     /// gateway MAC if it is missing, then restores both directions and announces to the

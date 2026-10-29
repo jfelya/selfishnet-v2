@@ -1,7 +1,7 @@
 namespace SelfishNetV2.Drivers;
 
 /// <summary>A capture-capable device reported by the packet driver.</summary>
-public sealed record PcapDeviceInfo(string Name, string Description);
+public sealed record PcapDeviceInfo(string Name);
 
 public enum ReceiveResult
 {
@@ -23,14 +23,8 @@ public enum ReceiveResult
 public readonly ref struct PacketView
 {
     public ReadOnlySpan<byte> Data { get; }
-    /// <summary>Original on-wire length (may exceed captured length).</summary>
-    public int WireLength { get; }
 
-    public PacketView(ReadOnlySpan<byte> data, int wireLength)
-    {
-        Data = data;
-        WireLength = wireLength;
-    }
+    public PacketView(ReadOnlySpan<byte> data) => Data = data;
 }
 
 /// <summary>One open capture handle. Threading contract: Receive is called from the owning
@@ -38,8 +32,6 @@ public readonly ref struct PacketView
 public interface IPcapCapture : IDisposable
 {
     string DeviceName { get; }
-    /// <summary>DLT_* value; 1 = Ethernet.</summary>
-    int DataLink { get; }
     string LastError { get; }
     /// <summary>0 on success, -1 on failure (see <see cref="LastError"/>).</summary>
     int Send(ReadOnlySpan<byte> frame);

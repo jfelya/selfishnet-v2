@@ -1,4 +1,3 @@
-using System.Security.Principal;
 using Microsoft.Win32;
 using SelfishNetV2.Core;
 using SelfishNetV2.Drivers;
@@ -18,16 +17,6 @@ public sealed class AdapterService
         IReadOnlyList<string> pcapNames = _driver?.EnumerateDevices()
             .Select(d => d.Name).ToList() ?? (IReadOnlyList<string>)Array.Empty<string>();
         return NetworkAdapterEnumerator.GetUsableAdapters(pcapNames);
-    }
-
-    public static bool IsAdministrator()
-    {
-        try
-        {
-            using var id = WindowsIdentity.GetCurrent();
-            return new WindowsPrincipal(id).IsInRole(WindowsBuiltInRole.Administrator);
-        }
-        catch { return false; }
     }
 
     /// <summary>

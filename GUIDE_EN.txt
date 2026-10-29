@@ -104,7 +104,7 @@ The app's persistent data consists of two files:
 
   - %AppData%\SelfishNetV2\known_devices.json
     Stores known-device information associated with MAC addresses,
-    including custom names, bandwidth limits, Block and Spoof settings,
+    including custom names, bandwidth limits, Block settings,
     the last known IP address, and the last-seen information.
 
 No diagnostic or traffic log is written by the application.
@@ -117,6 +117,8 @@ When the app starts, it scans the local subnet for devices and then repeats the 
 The app also learns about devices by passively monitoring ARP traffic already present on the network, allowing many devices to appear without an explicit scan.
 
 The Discover button triggers an immediate scan. Device names are obtained through reverse DNS lookups when available. You can rename a device by double-clicking its name. Names are stored by MAC address, so they remain associated with the same device even if its IP address changes.
+
+Each scan is limited to 4,096 addresses so a very large subnet cannot make discovery run for hours. Passive ARP learning still picks up active devices outside that window. The status bar returns to Ready when the scan stops.
 
 --------------------------------------------------------------------
 6. LEAVING THE NETWORK CLEAN (HEALING)
@@ -154,7 +156,8 @@ Using Stop or closing the app normally gives SelfishNet an opportunity to send c
     restart with Administrator privileges if access is denied.
 
 SelfishNet is distributed as a portable executable, with no separate
-.NET installation required.
+.NET installation required. Only one copy can run at a time; launching
+a second copy shows a short message and exits.
 
 --------------------------------------------------------------------
 8. LIMITS AND KNOWN EDGE CASES
@@ -183,6 +186,11 @@ SelfishNet is distributed as a portable executable, with no separate
     identity, which may not cover every path used by the network.
   - The app does not limit traffic originating from or destined for
     your own PC.
+  - A limit below 1 KByte/s is shown as `<1` in KByte/s mode. Switch to
+    KBit/s to edit that value without changing it.
+  - If the packet driver stops unexpectedly, the app stops shaping and
+    attempts to restore the ARP tables. Fix or reinstall the driver, then
+    restart the app.
 
 --------------------------------------------------------------------
 9. QUICK START
@@ -195,8 +203,7 @@ SelfishNet is distributed as a portable executable, with no separate
      scan for them immediately.
   4. Enter download and upload limits in the device grid, or enable
      Block to prevent a device's traffic from being forwarded.
-     Use the Spoof checkbox to include or exclude a device from traffic
-     control. All devices are included by default.
+     All discovered devices are included in traffic control.
   5. Click Start Shaping to begin. The status indicator turns green
      when shaping is active.
   6. Click Stop before closing the app to initiate network restoration.

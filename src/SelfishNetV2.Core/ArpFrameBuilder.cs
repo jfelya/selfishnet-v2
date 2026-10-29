@@ -24,17 +24,17 @@ public static class ArpFrameBuilder
     {
         if (frame.Length < FrameLength) throw new ArgumentException($"Buffer must be ≥ {FrameLength} bytes", nameof(frame));
         frame.Clear();
-        WriteMac(dstMac, frame, 0);
-        WriteMac(srcMac, frame, 6);
+        NetKeys.WriteMac(frame, 0, dstMac);
+        NetKeys.WriteMac(frame, 6, srcMac);
         frame[12] = 0x08; frame[13] = 0x06;           // EtherType ARP
         frame[14] = 0x00; frame[15] = 0x01;           // HW type Ethernet
         frame[16] = 0x08; frame[17] = 0x00;           // Proto IPv4
         frame[18] = 6;                                 // HW addr size
         frame[19] = 4;                                 // Proto addr size
         frame[20] = (byte)(opcode >> 8); frame[21] = (byte)(opcode & 0xFF);
-        WriteMac(senderMac, frame, 22);
+        NetKeys.WriteMac(frame, 22, senderMac);
         WriteIp(senderIp, frame, 28);
-        WriteMac(targetMac, frame, 32);
+        NetKeys.WriteMac(frame, 32, targetMac);
         WriteIp(targetIp, frame, 38);
     }
 
@@ -78,16 +78,6 @@ public static class ArpFrameBuilder
     public static void BuildGratuitousBroadcast(Span<byte> frame, ulong senderMac, uint senderIp) =>
         Build(frame, NetKeys.BroadcastMac, senderMac, senderMac, senderIp,
               NetKeys.BroadcastMac, senderIp, OpcodeReply);
-
-    private static void WriteMac(ulong mac, Span<byte> dst, int offset)
-    {
-        dst[offset] = (byte)(mac >> 40);
-        dst[offset + 1] = (byte)(mac >> 32);
-        dst[offset + 2] = (byte)(mac >> 24);
-        dst[offset + 3] = (byte)(mac >> 16);
-        dst[offset + 4] = (byte)(mac >> 8);
-        dst[offset + 5] = (byte)mac;
-    }
 
     private static void WriteIp(uint ip, Span<byte> dst, int offset)
     {
