@@ -36,7 +36,7 @@ single elevated restart only if the driver is restricted.
 | Legacy engine (spec-locked 2007 mechanics) | ✅ |
 | Modern engine (token-bucket, VLAN-aware, zero-alloc hot path) | ✅ |
 | Runtime engine switch (UI toggle, auto-heal before swap) | ✅ |
-| WPF shell (dark/light, live charts, per-device caps/block, 4 Hz speeds) | ✅ |
+| WPF shell (dark/light, live charts, per-device caps/block, 1 Hz speeds) | ✅ |
 | Localization (en-US / es-419, hot-swappable) | ✅ |
 | Auto-discovery (60 s background sweep + passive ARP learning) | ✅ |
 | Robust healing (registry-backed, broadcast gratuitous, gateway re-resolve) | ✅ |
@@ -93,7 +93,7 @@ install is needed — copy one anywhere.
 - **One instance, fail-safe driver:** a second copy exits with a clear message. If the packet
   capture stops with a driver error, the app stops shaping and attempts to heal instead of
   leaving victims pointed at a PC that no longer forwards.
-- **Comfort features:** per-device speeds refresh at 4 Hz, limit boxes accept digits only and
+- **Comfort features:** per-device speeds refresh once per second, limit boxes accept digits only and
   commit empty as 0, **Reset limits** returns every device to unlimited in one click, and a
   sub-1 KByte/s cap is shown as `<1` instead of looking unlimited.
 

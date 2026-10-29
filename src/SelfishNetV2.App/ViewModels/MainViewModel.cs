@@ -65,9 +65,8 @@ public sealed class MainViewModel : ObservableObject
         OpenNpcapDownloadCommand = new RelayCommand(_ => OpenNpcapDownload());
         ResetLimitsCommand = new RelayCommand(_ => ResetLimits(), _ => CanUseEngine);
 
-        // Live grid refresh: 4 Hz from lifetime counters (the engine still samples
-        // once per second for its cap windows and charts).
-        _fastTimer.Interval = TimeSpan.FromMilliseconds(250);
+        // Live grid refresh: once per second, matching the engine's sampling window.
+        _fastTimer.Interval = TimeSpan.FromSeconds(1);
         _fastTimer.Tick += (_, _) => OnFastTick();
         _fastTimer.Start();
 
@@ -396,7 +395,7 @@ public sealed class MainViewModel : ObservableObject
         ChartTick?.Invoke(totalDown, totalUp, selDown, selUp);
     }
 
-    /// <summary>Fast UI sampling (4 Hz): per-device rates from lifetime byte counters.</summary>
+    /// <summary>Live UI sampling (1 Hz): per-device rates from lifetime byte counters.</summary>
     private void OnFastTick()
     {
         if (_orch == null) return;

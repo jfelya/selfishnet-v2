@@ -9,9 +9,8 @@ namespace SelfishNetV2.App.ViewModels;
 /// tags) is a VIEW concern computed at render time — the model never stores decorated
 /// text (blueprint M6). Speeds/caps are formatted in the current unit mode.
 ///
-/// Live speeds are computed from the device's lifetime byte counters on every UI tick
-/// (4 Hz), so the grid updates faster than the engine's 1 s sampling window without
-/// disturbing the legacy cap windows.
+/// Live speeds are computed from the device's lifetime byte counters once per second,
+/// matching the engine's sampling window without disturbing the legacy cap windows.
 /// </summary>
 public sealed class DeviceViewModel : ObservableObject
 {

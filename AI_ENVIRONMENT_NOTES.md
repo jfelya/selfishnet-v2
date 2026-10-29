@@ -162,7 +162,7 @@ SelfishNet v2/
 | `asInvoker` + access probe | Admin is only needed when Npcap restricts the driver; avoids a UAC prompt otherwise |
 | Settings follow rotated MACs | Phones randomize their Wi-Fi MAC; caps/names match by MAC → last IP → hostname so limits follow the device |
 | Spoofing is unconditional | Per-device Spoof column removed (user request); every discovered device is shaped. Legacy `Targeted` flags are ignored on load and normalised to true on save |
-| 4 Hz live speeds | UI computes per-device rates from lifetime counters every 250 ms; the engine keeps 1 s windows for cap math and charts |
+| 1 Hz live speeds | UI computes per-device rates from lifetime counters once per second, matching the engine's cap/display window |
 | Healing is paced and quiet | Restore bursts sleep 4 ms/pair (Realtek/Npcap error 31 under dense sends); heal-path send failures are counted, never shown as dialogs |
 | Fail-closed shaping | A gateway-less adapter is rejected (`MsgNoGateway`) and send failures are surfaced — never a silent "running but not spoofing" state |
 | Two portable exes versioned at the root | Clone-and-run convenience; a deliberate ~130 MB-per-rebuild trade-off (build output stays ignored) |
@@ -236,7 +236,8 @@ Rules adopted (keep them):
    MAC entry and the new entry was unlimited. Fixed with identity fallback (MAC → last IP →
    hostname), plus fail-closed shaping (no gateway), send-failure reporting and About diagnostics.
 10. **UX round** — Spoof column removed (all devices shaped by default), Reset-limits button,
-    numeric-only limit boxes (empty = 0), taller rows, 4 Hz live speeds, paced/silent healing.
+    numeric-only limit boxes (empty = 0), taller rows, 1 Hz live speeds (reverted from
+    4 Hz on 2026-10-29), paced/silent healing.
 11. **UI cleanup** — OS-forwarding detection/column/warning removed entirely (user request),
     adapter dialog rows sized for two-line text and given the dark title bar, and the numeric
     editor now inherits the themed TextBox style instead of rendering white (implicit WPF styles
