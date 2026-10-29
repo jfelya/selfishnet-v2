@@ -42,7 +42,8 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 - Approved plan: `docs/superpowers/plans/2026-10-28-revamp-hardening.md`.
 - Sequence: Must-fix tasks 1–2, persistence task 3, discovery/input task 4,
   display/performance task 5, hygiene/docs task 6, final verification task 7.
-- Current status: **Tasks 1–6 complete; final-review fix pass applied.** Capture
+- Current status: **Tasks 1–7 complete; final-review fix pass applied; integration
+  is the user's decision.** Capture
   shutdown is fail-safe (a stuck spoof/sweep is leaked, not closed), fatal receive
   errors stop shaping and heal, catalog clears remove UI rows, saved caps render on
   first load, and an unmatched pcap GUID is rejected. Device memory writes
@@ -53,8 +54,9 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
   Catalog updates fire only on identity changes; the chart shares one scale; a
   named mutex prevents two copies; adapter errors are specific; failed heals keep
   their claim for a close retry; logoff teardown is bounded. Test packages are
-  current and vulnerability-free; docs/guides are current. Full suite: **124/124
-  green**.
+  current and vulnerability-free; docs/guides are current. Final verification:
+  Release build 0 warnings/0 errors, **124/124 tests green**, package audit clean,
+  working tree clean on branch `revamp-hardening`.
 - Standing user requests: keep this file's storyline current after every
   milestone; update `GUIDE_EN.txt` / `GUIDE_ES.txt` when behavior changes; do not
   commit new root executables until the fixes are confirmed stable; remove
