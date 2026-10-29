@@ -549,8 +549,7 @@ public sealed class MainViewModel : ObservableObject
     private void ResetLimits()
     {
         if (_orch == null) return;
-        foreach (var dev in _orch.Catalog.Devices)
-            _orch.SetCaps(dev, 0, 0);
+        _orch.SetCapsBulk(_orch.Catalog.Devices, 0, 0);
         foreach (var vm in Devices) vm.RefreshCaps();
     }
 

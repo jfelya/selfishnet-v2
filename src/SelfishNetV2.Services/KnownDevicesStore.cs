@@ -13,11 +13,19 @@ public sealed class KnownDevicesStore
     private readonly Dictionary<string, Entry> _map = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _lock = new();
     private readonly bool _inMemory;
+    private readonly string _filePath;
 
-    private KnownDevicesStore(bool inMemory) => _inMemory = inMemory;
+    private KnownDevicesStore(bool inMemory, string filePath)
+    {
+        _inMemory = inMemory;
+        _filePath = filePath;
+    }
 
     /// <summary>Non-persistent store for tests (never touches disk).</summary>
-    public static KnownDevicesStore InMemory() => new(inMemory: true);
+    public static KnownDevicesStore InMemory() => new(inMemory: true, filePath: "");
+
+    /// <summary>Number of successful disk writes; test instrumentation only.</summary>
+    internal int SaveCount { get; private set; }
 
     public sealed class Entry
     {
@@ -31,25 +39,31 @@ public sealed class KnownDevicesStore
         public DateTime LastSeenUtc { get; set; }
     }
 
-    private static string FilePath =>
+    private static string DefaultFilePath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "SelfishNetV2", "known_devices.json");
 
-    public static KnownDevicesStore Load()
+    public static KnownDevicesStore Load(string? filePath = null)
     {
-        var store = new KnownDevicesStore(inMemory: false);
+        string path = filePath ?? DefaultFilePath;
+        var store = new KnownDevicesStore(inMemory: false, filePath: path);
+        // A corrupt main file falls back to the last complete backup. Only when
+        // both are unreadable does the store start empty.
+        var map = TryReadMap(path) ?? TryReadMap(path + ".bak");
+        if (map != null)
+            foreach (var kv in map)
+                store._map[Normalize(kv.Key)] = kv.Value;
+        return store;
+    }
+
+    private static Dictionary<string, Entry>? TryReadMap(string path)
+    {
         try
         {
-            if (File.Exists(FilePath))
-            {
-                var map = JsonSerializer.Deserialize<Dictionary<string, Entry>>(File.ReadAllText(FilePath));
-                if (map != null)
-                    foreach (var kv in map)
-                        store._map[Normalize(kv.Key)] = kv.Value;
-            }
+            if (!File.Exists(path)) return null;
+            return JsonSerializer.Deserialize<Dictionary<string, Entry>>(File.ReadAllText(path));
         }
-        catch { /* start empty on corrupt file */ }
-        return store;
+        catch { return null; }
     }
 
     private void Save()
@@ -57,9 +71,9 @@ public sealed class KnownDevicesStore
         if (_inMemory) return;
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(_map,
+            AtomicFile.WriteAllText(_filePath, JsonSerializer.Serialize(_map,
                 new JsonSerializerOptions { WriteIndented = true }));
+            SaveCount++;
         }
         catch { /* non-fatal */ }
     }
@@ -85,6 +99,10 @@ public sealed class KnownDevicesStore
                 dev.KnownSettingsApplied = true;
                 return true;
             }
+
+            // A same-IP match is only safe when the new MAC looks rotated rather
+            // than like a different physical device that received the old DHCP lease.
+            if (!NetKeys.IsLocallyAdministered(dev.MacKey)) return false;
 
             string ip = NetKeys.FormatIp(dev.IpKey);
             Entry? best = null;
@@ -120,7 +138,7 @@ public sealed class KnownDevicesStore
     /// </summary>
     public bool TryApplyByName(Device dev, string systemName)
     {
-        if (dev.KnownSettingsApplied || string.IsNullOrWhiteSpace(systemName)) return false;
+        if (dev.KnownSettingsApplied || dev.UserEdited || string.IsNullOrWhiteSpace(systemName)) return false;
         lock (_lock)
         {
             foreach (var candidate in _map.Values)
@@ -147,23 +165,31 @@ public sealed class KnownDevicesStore
         // legacy Targeted flag is deliberately not restored.
     }
 
-    public void Update(Device dev)
+    public void Update(Device dev) => UpdateMany(new[] { dev });
+
+    /// <summary>Update several devices under one lock and one disk write.</summary>
+    public void UpdateMany(IEnumerable<Device> devices)
     {
-        if (!Storable(dev.MacKey)) return;
         lock (_lock)
         {
-            var e = GetOrCreate(dev.MacKey);
-            e.CustomName = string.IsNullOrWhiteSpace(dev.CustomName) ? null : dev.CustomName.Trim();
-            e.DownCapBytes = dev.CapDownBytesPerSec;
-            e.UpCapBytes = dev.CapUpBytesPerSec;
-            e.Blocked = !dev.Redirect;
-            e.Targeted = true; // spoofing is unconditional; normalise legacy files
-            e.LastIp = NetKeys.FormatIp(dev.IpKey);
-            if (!string.IsNullOrWhiteSpace(dev.Name) &&
-                !string.Equals(dev.Name, NetKeys.FormatIp(dev.IpKey), StringComparison.Ordinal))
-                e.SystemName = dev.Name;
-            e.LastSeenUtc = DateTime.UtcNow;
-            Save();
+            bool any = false;
+            foreach (var dev in devices)
+            {
+                if (!Storable(dev.MacKey)) continue;
+                var e = GetOrCreate(dev.MacKey);
+                e.CustomName = string.IsNullOrWhiteSpace(dev.CustomName) ? null : dev.CustomName.Trim();
+                e.DownCapBytes = dev.CapDownBytesPerSec;
+                e.UpCapBytes = dev.CapUpBytesPerSec;
+                e.Blocked = !dev.Redirect;
+                e.Targeted = true; // spoofing is unconditional; normalise legacy files
+                e.LastIp = NetKeys.FormatIp(dev.IpKey);
+                if (!string.IsNullOrWhiteSpace(dev.Name) &&
+                    !string.Equals(dev.Name, NetKeys.FormatIp(dev.IpKey), StringComparison.Ordinal))
+                    e.SystemName = dev.Name;
+                e.LastSeenUtc = DateTime.UtcNow;
+                any = true;
+            }
+            if (any) Save();
         }
     }
 

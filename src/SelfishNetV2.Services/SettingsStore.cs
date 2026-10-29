@@ -11,28 +11,37 @@ public sealed class SettingsStore
     public string Theme { get; set; } = "Dark";
     public string Engine { get; set; } = "Modern";
 
-    private static string DirPath =>
+    private string? _filePath;
+
+    private static string DefaultDir =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SelfishNetV2");
 
-    private static string FilePath => Path.Combine(DirPath, "settings.json");
+    private static string DefaultFilePath => Path.Combine(DefaultDir, "settings.json");
 
-    public static SettingsStore Load()
+    public static SettingsStore Load(string? filePath = null)
+    {
+        string path = filePath ?? DefaultFilePath;
+        var store = TryRead(path) ?? TryRead(path + ".bak") ?? new SettingsStore();
+        store._filePath = path;
+        return store;
+    }
+
+    private static SettingsStore? TryRead(string path)
     {
         try
         {
-            if (File.Exists(FilePath))
-                return JsonSerializer.Deserialize<SettingsStore>(File.ReadAllText(FilePath)) ?? new SettingsStore();
+            if (!File.Exists(path)) return null;
+            return JsonSerializer.Deserialize<SettingsStore>(File.ReadAllText(path));
         }
-        catch { /* fall through to defaults */ }
-        return new SettingsStore();
+        catch { return null; }
     }
 
     public void Save()
     {
         try
         {
-            Directory.CreateDirectory(DirPath);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+            AtomicFile.WriteAllText(_filePath ?? DefaultFilePath,
+                JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
         }
         catch { /* non-fatal */ }
     }

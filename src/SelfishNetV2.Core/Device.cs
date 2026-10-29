@@ -60,6 +60,10 @@ public sealed class Device
     /// last IP or hostname). Prevents a later hostname match from overwriting them.</summary>
     public bool KnownSettingsApplied { get; set; }
 
+    /// <summary>True after the user explicitly renames, caps or blocks this device.
+    /// A late DNS/hostname match must never overwrite a fresh user edit.</summary>
+    public bool UserEdited { get; set; }
+
     public long TotalDownBytes => Interlocked.Read(ref _totalDown);
     public long TotalUpBytes => Interlocked.Read(ref _totalUp);
     public int DownWindow => Volatile.Read(ref _downWindow);

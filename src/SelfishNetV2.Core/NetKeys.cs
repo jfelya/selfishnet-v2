@@ -34,6 +34,13 @@ public static class NetKeys
     /// <summary>Broadcast MAC as a numeric key.</summary>
     public const ulong BroadcastMac = 0xFFFFFFFFFFFF;
 
+    /// <summary>True when the MAC's locally-administered bit is set. Phones with
+    /// private Wi-Fi addresses set this; a globally administered hardware MAC does
+    /// not. Used to avoid inheriting settings when DHCP hands an old IP to a new
+    /// physical device.</summary>
+    public static bool IsLocallyAdministered(ulong macKey) =>
+        ((macKey >> 40) & 0x02) != 0;
+
     /// <summary>Formats a MAC key as "AA:BB:CC:DD:EE:FF" (display only, never in hot path).</summary>
     public static string FormatMac(ulong v) =>
         $"{(byte)(v >> 40):X2}:{(byte)(v >> 32):X2}:{(byte)(v >> 24):X2}:" +

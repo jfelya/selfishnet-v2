@@ -66,6 +66,37 @@ public class KnownDevicesStoreTests
     }
 
     [Fact]
+    public void NormalMacAtSameIp_DoesNotInherit_OnDhcpReuse()
+    {
+        var store = KnownDevicesStore.InMemory();
+        var oldDevice = Make(0xC0A80164, 0xAABBCCDDEE01);
+        oldDevice.CapDownBytesPerSec = 256_000;
+        store.Update(oldDevice);
+
+        // 00:... is a globally administered hardware MAC; a different physical
+        // device that receives the old IP must not inherit the old settings.
+        var fresh = Make(0xC0A80164, 0x001122334455);
+
+        Assert.False(store.ApplyTo(fresh));
+        Assert.Equal(0, fresh.CapDownBytesPerSec);
+    }
+
+    [Fact]
+    public void UserEdited_DoesNotInheritByNameLater()
+    {
+        var store = KnownDevicesStore.InMemory();
+        var oldPhone = Make(0xC0A80164, 0x8E4F29BF351C, "POCO-X6-Pro-5G");
+        oldPhone.CapUpBytesPerSec = 128_000;
+        store.Update(oldPhone);
+
+        var fresh = Make(0xC0A80165, 0x1E335421F882);
+        fresh.UserEdited = true; // the user changed something before DNS returned
+
+        Assert.False(store.TryApplyByName(fresh, "POCO-X6-Pro-5G"));
+        Assert.Equal(0, fresh.CapUpBytesPerSec);
+    }
+
+    [Fact]
     public void SameIp_PrefersEntryThatCarriesSettings()
     {
         var store = KnownDevicesStore.InMemory();

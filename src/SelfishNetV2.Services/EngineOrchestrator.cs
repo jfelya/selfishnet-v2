@@ -53,9 +53,39 @@ public sealed class EngineOrchestrator : IDisposable
 
     // ---------------- device mutation (apply + persist) ----------------
 
-    public void SetCustomName(Device dev, string? name) { dev.CustomName = string.IsNullOrWhiteSpace(name) ? null : name.Trim(); _known.Update(dev); }
-    public void SetCaps(Device dev, int downBytes, int upBytes) { dev.CapDownBytesPerSec = downBytes; dev.CapUpBytesPerSec = upBytes; _known.Update(dev); }
-    public void SetBlocked(Device dev, bool blocked) { dev.Redirect = !blocked; _known.Update(dev); }
+    public void SetCustomName(Device dev, string? name)
+    {
+        dev.CustomName = string.IsNullOrWhiteSpace(name) ? null : name.Trim();
+        dev.UserEdited = true;
+        _known.Update(dev);
+    }
+
+    public void SetCaps(Device dev, int downBytes, int upBytes)
+    {
+        dev.CapDownBytesPerSec = downBytes;
+        dev.CapUpBytesPerSec = upBytes;
+        dev.UserEdited = true;
+        _known.Update(dev);
+    }
+
+    public void SetCapsBulk(IEnumerable<Device> devices, int downBytes, int upBytes)
+    {
+        var list = devices as IList<Device> ?? devices.ToList();
+        foreach (var dev in list)
+        {
+            dev.CapDownBytesPerSec = downBytes;
+            dev.CapUpBytesPerSec = upBytes;
+            dev.UserEdited = true;
+        }
+        _known.UpdateMany(list);
+    }
+
+    public void SetBlocked(Device dev, bool blocked)
+    {
+        dev.Redirect = !blocked;
+        dev.UserEdited = true;
+        _known.Update(dev);
+    }
 
     // ---------------- adapter / session lifecycle ----------------
 
