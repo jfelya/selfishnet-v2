@@ -61,7 +61,8 @@ public abstract class EngineSessionBase : IEngineSession
     public abstract EngineKind Kind { get; }
     public EngineRunState State => _state;
     public AdapterInfo? Adapter { get; private set; }
-    public bool IsDiscovering { get; private set; }
+    private volatile bool _discovering;
+    public bool IsDiscovering => _discovering;
     public long ForwardedDown => Interlocked.Read(ref _forwardedDown);
     public long ForwardedUp => Interlocked.Read(ref _forwardedUp);
     public long Dropped => Interlocked.Read(ref _dropped);
@@ -69,6 +70,7 @@ public abstract class EngineSessionBase : IEngineSession
 
     public event EventHandler<EngineErrorEventArgs>? Error;
     public event EventHandler? StateChanged;
+    public event EventHandler? DiscoveryCompleted;
     public event EventHandler? StatsTick;
 
     // ----- engine-specific policy hooks -----
@@ -91,6 +93,13 @@ public abstract class EngineSessionBase : IEngineSession
     /// <summary>Background subnet sweep cadence (0 disables). Passive ARP learning is
     /// always active; this catches devices that stay silent.</summary>
     protected virtual int AutoScanIntervalMs => 60_000;
+
+    /// <summary>Upper bound on hosts probed by one sweep. A /16 would otherwise
+    /// take minutes; the expected /24 is unaffected.</summary>
+    protected virtual int MaxSweepHosts => 4096;
+
+    /// <summary>Delay between ARP requests (original pacing). Tests override to 0.</summary>
+    protected virtual int DiscoveryPacingMs => 5;
 
     protected EngineSessionBase(DeviceCatalog catalog, IPcapDriver driver)
     {
@@ -202,28 +211,34 @@ public abstract class EngineSessionBase : IEngineSession
     {
         var adapter = Adapter;
         var arp = _arp;
-        if (IsDiscovering || adapter == null || arp == null) return;
-        IsDiscovering = true;
+        if (_discovering || adapter == null || arp == null) return;
+        _discovering = true;
         Task.Run(() =>
         {
             try
             {
                 Span<byte> buf = stackalloc byte[ArpFrameBuilder.FrameLength];
+                int sent = 0;
                 foreach (uint target in NetworkAdapterEnumerator.EnumerateSubnet(adapter.LocalIpKey, adapter.MaskKey))
                 {
-                    if (!IsDiscovering) break;
+                    if (!_discovering || sent >= MaxSweepHosts) break;
                     if (target == adapter.LocalIpKey) continue;
                     ArpFrameBuilder.BuildRequest(buf, adapter.MacKey, adapter.LocalIpKey, target);
                     SendFrame(arp, buf);
-                    Thread.Sleep(5); // original pacing: one ARP request per ~5 ms
+                    sent++;
+                    if (DiscoveryPacingMs > 0) Thread.Sleep(DiscoveryPacingMs);
                 }
             }
             catch { /* capture closed mid-scan is non-fatal */ }
-            finally { IsDiscovering = false; }
+            finally
+            {
+                _discovering = false;
+                try { DiscoveryCompleted?.Invoke(this, EventArgs.Empty); } catch { }
+            }
         });
     }
 
-    public void StopDiscovery() => IsDiscovering = false;
+    public void StopDiscovery() => _discovering = false;
 
     // ================= ARP listener (original arpListener) =================
 

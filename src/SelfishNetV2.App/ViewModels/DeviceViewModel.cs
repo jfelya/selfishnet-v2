@@ -86,7 +86,7 @@ public sealed class DeviceViewModel : ObservableObject
         get => _capDownText;
         set
         {
-            int bytes = ParseCap(value);
+            int bytes = ParseCap(value, _dev.CapDownBytesPerSec);
             _host.SetCaps(_dev, bytes, null);
             RefreshCaps();
             OnPropertyChanged();
@@ -98,16 +98,17 @@ public sealed class DeviceViewModel : ObservableObject
         get => _capUpText;
         set
         {
-            int bytes = ParseCap(value);
+            int bytes = ParseCap(value, _dev.CapUpBytesPerSec);
             _host.SetCaps(_dev, null, bytes);
             RefreshCaps();
             OnPropertyChanged();
         }
     }
 
-    private int ParseCap(string? text)
+    private int ParseCap(string? text, int currentBytes)
     {
         string cleaned = (text ?? "").Trim();
+        if (cleaned == "<1") return currentBytes; // unchanged sub-unit display
         if (cleaned.Length == 0) return 0;
         return decimal.TryParse(cleaned, out decimal value) && value > 0
             ? SpeedFormatter.FromCapDisplay(value, _host.Units)
@@ -147,10 +148,17 @@ public sealed class DeviceViewModel : ObservableObject
 
     public void RefreshCaps()
     {
-        _capDownText = SpeedFormatter.ToCapDisplay(_dev.CapDownBytesPerSec, _host.Units).ToString("0");
-        _capUpText = SpeedFormatter.ToCapDisplay(_dev.CapUpBytesPerSec, _host.Units).ToString("0");
+        _capDownText = FormatCap(_dev.CapDownBytesPerSec);
+        _capUpText = FormatCap(_dev.CapUpBytesPerSec);
         OnPropertyChanged(nameof(CapDownText));
         OnPropertyChanged(nameof(CapUpText));
+    }
+
+    private string FormatCap(int bytesPerSec)
+    {
+        decimal display = SpeedFormatter.ToCapDisplay(bytesPerSec, _host.Units);
+        // "0" means unlimited. A real sub-unit cap must not look like unlimited.
+        return bytesPerSec > 0 && display < 1 ? "<1" : display.ToString("0");
     }
 
     public void RefreshIdentity()

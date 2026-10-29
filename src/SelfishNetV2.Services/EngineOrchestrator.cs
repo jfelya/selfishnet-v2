@@ -48,6 +48,7 @@ public sealed class EngineOrchestrator : IDisposable
 
     public event EventHandler<EngineErrorEventArgs>? Error;
     public event EventHandler? StateChanged;
+    public event EventHandler? DiscoveryCompleted;
     public event EventHandler? EngineChanged;
     public event EventHandler? StatsTick;
 
@@ -163,6 +164,7 @@ public sealed class EngineOrchestrator : IDisposable
         _session = _factories[CurrentKind].Create(_catalog, _driver);
         _session.Error += (s, e) => Error?.Invoke(s, e);
         _session.StateChanged += (s, e) => StateChanged?.Invoke(s, e);
+        _session.DiscoveryCompleted += (s, e) => DiscoveryCompleted?.Invoke(s, e);
         _session.StatsTick += (s, e) => StatsTick?.Invoke(s, e);
         return _session;
     }

@@ -49,6 +49,13 @@ public class SpeedFormatterTests
     public void FromCapDisplay_Works(decimal display, UnitMode mode, int expected) =>
         Assert.Equal(expected, SpeedFormatter.FromCapDisplay(display, mode));
 
+    [Fact]
+    public void FromCapDisplay_ClampsOverflow()
+    {
+        Assert.Equal(int.MaxValue, SpeedFormatter.FromCapDisplay(decimal.MaxValue, UnitMode.Bytes));
+        Assert.Equal(int.MaxValue, SpeedFormatter.FromCapDisplay(decimal.MaxValue, UnitMode.Bits));
+    }
+
     [Theory]
     [InlineData(512L, "512 B")]
     [InlineData(1024L, "1.0 KByte")]

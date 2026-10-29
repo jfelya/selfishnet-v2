@@ -39,6 +39,7 @@ public static class SpeedFormatter
     {
         if (display <= 0) return 0;
         double v = mode == UnitMode.Bytes ? (double)display * 1024 : (double)display * 1000 / 8;
+        if (double.IsNaN(v) || v >= int.MaxValue) return int.MaxValue;
         return (int)Math.Round(v);
     }
 

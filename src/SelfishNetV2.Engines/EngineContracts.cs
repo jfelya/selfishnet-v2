@@ -50,6 +50,8 @@ public interface IEngineSession : IDisposable
 
     event EventHandler<EngineErrorEventArgs>? Error;
     event EventHandler? StateChanged;
+    /// <summary>Raised when a discovery sweep stops (complete, budgeted, or cancelled).</summary>
+    event EventHandler? DiscoveryCompleted;
     /// <summary>Raised ~1/s while open: per-device window counters were rotated into display samples.</summary>
     event EventHandler? StatsTick;
 

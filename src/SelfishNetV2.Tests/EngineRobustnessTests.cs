@@ -25,6 +25,10 @@ public class EngineRobustnessTests
         "{00000000-0000-0000-0000-000000000001}", "Loopback", "Loopback test adapter",
         LocalIp, 0xFFFFFF00, RouterIp, Local, "loopback0");
 
+    private static AdapterInfo Adapter16 => new(
+        "{00000000-0000-0000-0000-000000000001}", "Loopback", "Loopback /16 test adapter",
+        0x0A000132, 0xFFFF0000, RouterIp, Local, "loopback0");
+
     private static byte[] ArpReply(ulong senderMac, uint senderIp, ulong targetMac, uint targetIp) =>
         ArpFrameBuilder.Build(targetMac, senderMac, senderMac, senderIp, targetMac, targetIp, 2);
 
@@ -183,6 +187,32 @@ public class EngineRobustnessTests
     });
 
     [Fact]
+    public void Discovery_StopsAtHostBudget_AndRaisesCompleted()
+    {
+        var driver = new LoopbackDriver();
+        var catalog = new DeviceCatalog();
+        using var engine = new BoundedScanEngine(catalog, driver);
+        bool completed = false;
+        engine.DiscoveryCompleted += (_, _) => completed = true;
+
+        Assert.True(engine.Open(Adapter16));
+        engine.StartDiscovery();
+        Thread.Sleep(200); // let the current (unbounded) sweep run briefly
+        engine.StopDiscovery();
+
+        Assert.True(WaitUntil(() => completed, 2000), "discovery completion event");
+        // Count only the sweep's 10.0.0.0/16 targets; Open may also send one
+        // gateway ARP request for the unrelated test-router IP.
+        int requests = driver.SentFrames.Count(f =>
+        {
+            if (!IsArp(f, 1)) return false;
+            ArpFrame.TryParse(f, out var a);
+            return (a.TargetIp & 0xFFFF0000) == 0x0A000000;
+        });
+        Assert.InRange(requests, 1, 8);
+    }
+
+    [Fact]
     public async Task Close_AfterSuccessfulStop_DoesNotReHeal()
     {
         // Disposing the engine must not re-send the whole healing burst when every
@@ -224,5 +254,14 @@ public class EngineRobustnessTests
     {
         public FastScanEngine(DeviceCatalog catalog, IPcapDriver driver) : base(catalog, driver) { }
         protected override int AutoScanIntervalMs => 1000;
+    }
+
+    /// <summary>No auto-scan, no pacing, and a tiny host budget for a fast bounded-sweep test.</summary>
+    private sealed class BoundedScanEngine : ModernEngine
+    {
+        public BoundedScanEngine(DeviceCatalog catalog, IPcapDriver driver) : base(catalog, driver) { }
+        protected override int AutoScanIntervalMs => 0;
+        protected override int DiscoveryPacingMs => 0;
+        protected override int MaxSweepHosts => 8;
     }
 }

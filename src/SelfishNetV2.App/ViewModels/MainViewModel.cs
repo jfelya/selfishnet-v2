@@ -79,6 +79,7 @@ public sealed class MainViewModel : ObservableObject
             _isEngineLegacy = !_isEngineModern;
             _orch.StateChanged += (_, _) => Dispatch(RefreshState);
             _orch.StatsTick += (_, _) => Dispatch(OnStatsTick);
+            _orch.DiscoveryCompleted += (_, _) => Dispatch(() => { if (!IsBusy) RefreshState(); });
             _orch.EngineChanged += (_, _) => Dispatch(RefreshState);
             _orch.Error += (_, e) => Dispatch(() => OnEngineError(e));
             _orch.Catalog.DeviceAdded += d => Dispatch(() => AddRow(d));
