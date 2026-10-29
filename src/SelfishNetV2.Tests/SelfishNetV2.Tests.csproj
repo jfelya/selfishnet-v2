@@ -7,6 +7,7 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,6 +26,7 @@
     <ProjectReference Include="..\SelfishNetV2.Drivers\SelfishNetV2.Drivers.csproj" />
     <ProjectReference Include="..\SelfishNetV2.Engines\SelfishNetV2.Engines.csproj" />
     <ProjectReference Include="..\SelfishNetV2.Services\SelfishNetV2.Services.csproj" />
+    <ProjectReference Include="..\SelfishNetV2.App\SelfishNetV2.App.csproj" />
   </ItemGroup>
 
 </Project>

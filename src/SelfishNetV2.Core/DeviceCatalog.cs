@@ -17,8 +17,6 @@ public sealed class DeviceCatalog
     public event Action<Device>? DeviceRemoved;
     /// <summary>Raised when an existing record mutates (MAC learned/changed, flags set).</summary>
     public event Action<Device>? DeviceUpdated;
-    /// <summary>Lightweight "anything changed" signal (e.g. for count labels).</summary>
-    public event Action? Changed;
 
     public int Count => _byIp.Count;
 
@@ -46,7 +44,6 @@ public sealed class DeviceCatalog
         if (macKey != 0) _ipByMac[macKey] = ipKey;
         if (isNew) DeviceAdded?.Invoke(dev);
         else DeviceUpdated?.Invoke(dev);
-        Changed?.Invoke();
         return dev;
     }
 
@@ -63,15 +60,15 @@ public sealed class DeviceCatalog
         if (!_byIp.TryRemove(ipKey, out var dev)) return false;
         _ipByMac.TryRemove(dev.MacKey, out _);
         DeviceRemoved?.Invoke(dev);
-        Changed?.Invoke();
         return true;
     }
 
     public void Clear()
     {
+        var removed = _byIp.Values.ToArray();
         _byIp.Clear();
         _ipByMac.Clear();
-        Changed?.Invoke();
+        foreach (var dev in removed) DeviceRemoved?.Invoke(dev);
     }
 
     /// <summary>Raises <see cref="DeviceUpdated"/> for external mutations the catalog
@@ -79,7 +76,6 @@ public sealed class DeviceCatalog
     public void NotifyUpdated(Device dev)
     {
         DeviceUpdated?.Invoke(dev);
-        Changed?.Invoke();
     }
 
     /// <summary>Sorted, stable snapshot for UI binding (allocation on the UI thread, never in hot paths).</summary>

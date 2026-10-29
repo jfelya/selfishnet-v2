@@ -35,6 +35,7 @@ public sealed class DeviceViewModel : ObservableObject
         _lastTotalDown = dev.TotalDownBytes;
         _lastTotalUp = dev.TotalUpBytes;
         _lastTick = Stopwatch.GetTimestamp();
+        RefreshCaps(); // saved caps must be visible on the first render
     }
 
     public Device Model => _dev;
@@ -157,5 +158,11 @@ public sealed class DeviceViewModel : ObservableObject
         OnPropertyChanged(nameof(DisplayName));
         OnPropertyChanged(nameof(MacText));
         OnPropertyChanged(nameof(RoleTag));
+    }
+
+    public void RefreshFlags()
+    {
+        OnPropertyChanged(nameof(Blocked));
+        OnPropertyChanged(nameof(CanEditFlags));
     }
 }

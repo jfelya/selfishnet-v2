@@ -28,7 +28,7 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 | Item | State |
 |---|---|
 | Build | `dotnet build src/SelfishNetV2.sln -c Release` → 0 warnings, 0 errors |
-| Tests | **99/99 green** in ~15 s (no hardware, no admin) |
+| Tests | **103/103 green** in ~15 s (no hardware, no admin) |
 | Field test | Real LAN: both engines limited a phone; runtime engine switch worked; healing worked |
 | Artifacts | `SelfishNetV2-x64.exe` 68.5 MB · `-x86.exe` 63.3 MB (project root) |
 | OS support | Windows 10 1607 → 22H2 and all Windows 11 releases; floor declared and guard-tested |
@@ -42,8 +42,10 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 - Approved plan: `docs/superpowers/plans/2026-10-28-revamp-hardening.md`.
 - Sequence: Must-fix tasks 1–2, persistence task 3, discovery/input task 4,
   display/performance task 5, hygiene/docs task 6, final verification task 7.
-- Current status: **Task 1 complete** — capture shutdown is fail-safe, fatal
-  receive errors stop shaping and heal, and the full suite is 99/99 green.
+- Current status: **Tasks 1–2 complete** — capture shutdown is fail-safe, fatal
+  receive errors stop shaping and heal, catalog clears remove UI rows, saved caps
+  render on first load, and an unmatched pcap GUID is rejected. Full suite:
+  103/103 green.
 - Standing user requests: keep this file's storyline current after every
   milestone; update `GUIDE_EN.txt` / `GUIDE_ES.txt` when behavior changes; do not
   commit new root executables until the fixes are confirmed stable; remove
@@ -232,8 +234,8 @@ Rules adopted (keep them):
     timeout hazards, a fatal-capture-error path that left victims disconnected, stale UI
     state after adapter switches, saved caps not shown, unsafe IP-reuse inheritance,
     non-atomic settings writes, and unbounded discovery. The approved plan is
-    `docs/superpowers/plans/2026-10-28-revamp-hardening.md`; Task 1 (fail-safe capture
-    shutdown and fatal receive errors) is complete. Full suite: 99/99.
+    `docs/superpowers/plans/2026-10-28-revamp-hardening.md`; Tasks 1–2 (fail-safe
+    capture shutdown/fatal errors and catalog/UI identity) are complete. Full suite: 103/103.
 
 ## 11. Backlog (see `docs/PENDING.md`)
 

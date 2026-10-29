@@ -369,7 +369,10 @@ public sealed class MainViewModel : ObservableObject
 
     private void RefreshRow(Device dev)
     {
-        if (_byIp.TryGetValue(dev.IpKey, out var vm)) vm.RefreshIdentity();
+        if (!_byIp.TryGetValue(dev.IpKey, out var vm)) return;
+        vm.RefreshIdentity();
+        vm.RefreshCaps();
+        vm.RefreshFlags();
     }
 
     private void OnStatsTick()

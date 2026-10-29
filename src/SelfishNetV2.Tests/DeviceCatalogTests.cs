@@ -52,6 +52,21 @@ public class DeviceCatalogTests
     }
 
     [Fact]
+    public void Clear_RaisesRemovedForEveryDevice()
+    {
+        var c = new DeviceCatalog();
+        var removed = new List<uint>();
+        c.DeviceRemoved += d => removed.Add(d.IpKey);
+        c.AddOrUpdate(0xC0A80164, 0xAABBCCDDEE01);
+        c.AddOrUpdate(0xC0A80165, 0xAABBCCDDEE02);
+
+        c.Clear();
+
+        Assert.Equal(new uint[] { 0xC0A80164, 0xC0A80165 }, removed.OrderBy(x => x).ToArray());
+        Assert.Equal(0, c.Count);
+    }
+
+    [Fact]
     public void Remove_RaisesRemoved_AndPurgesBothIndexes()
     {
         var c = new DeviceCatalog();

@@ -53,12 +53,13 @@ public static class NetworkAdapterEnumerator
         return result;
     }
 
-    /// <summary>Npcap device names look like \Device\NPF_{GUID}; match by NIC GUID.</summary>
-    private static string MatchPcapName(string nicId, IReadOnlyList<string> pcapNames)
+    /// <summary>Npcap device names look like \Device\NPF_{GUID}; match by NIC GUID.
+    /// No match returns empty: opening the first pcap device could shape the wrong LAN.</summary>
+    internal static string MatchPcapName(string nicId, IReadOnlyList<string> pcapNames)
     {
         foreach (string p in pcapNames)
             if (p.Contains(nicId, StringComparison.OrdinalIgnoreCase)) return p;
-        return pcapNames.Count > 0 ? pcapNames[0] : "";
+        return "";
     }
 
     /// <summary>Every host address in the adapter's subnet (network+1 .. broadcast-1).</summary>
