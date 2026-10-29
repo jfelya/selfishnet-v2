@@ -25,6 +25,7 @@ public sealed class DeviceCatalog
     public Device AddOrUpdate(uint ipKey, ulong macKey, bool isGateway = false, bool isLocal = false)
     {
         bool isNew = !_byIp.ContainsKey(ipKey);
+        bool identityChanged = false;
         var dev = _byIp.AddOrUpdate(ipKey,
             _ => new Device(ipKey, macKey) { IsGateway = isGateway, IsLocalPc = isLocal },
             (_, existing) =>
@@ -35,15 +36,24 @@ public sealed class DeviceCatalog
                     existing.MacKey = macKey;
                     _ipByMac.TryRemove(oldMac, out _);
                     _ipByMac[macKey] = ipKey;
+                    identityChanged = true;
                 }
-                if (isGateway) existing.IsGateway = true;
-                if (isLocal) existing.IsLocalPc = true;
+                if (isGateway && !existing.IsGateway)
+                {
+                    existing.IsGateway = true;
+                    identityChanged = true;
+                }
+                if (isLocal && !existing.IsLocalPc)
+                {
+                    existing.IsLocalPc = true;
+                    identityChanged = true;
+                }
                 existing.Touch();
                 return existing;
             });
         if (macKey != 0) _ipByMac[macKey] = ipKey;
         if (isNew) DeviceAdded?.Invoke(dev);
-        else DeviceUpdated?.Invoke(dev);
+        else if (identityChanged) DeviceUpdated?.Invoke(dev);
         return dev;
     }
 

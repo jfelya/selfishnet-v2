@@ -18,6 +18,21 @@ public class DeviceCatalogTests
     }
 
     [Fact]
+    public void RepeatedUnchangedDevice_DoesNotRaiseUpdated()
+    {
+        var c = new DeviceCatalog();
+        int added = 0, updated = 0;
+        c.DeviceAdded += _ => added++;
+        c.DeviceUpdated += _ => updated++;
+
+        c.AddOrUpdate(0xC0A80164, 0xAABBCCDDEE01);
+        c.AddOrUpdate(0xC0A80164, 0xAABBCCDDEE01);
+
+        Assert.Equal(1, added);
+        Assert.Equal(0, updated); // liveness still updates, UI identity does not
+    }
+
+    [Fact]
     public void MacLearn_Reindexes_FromZeroPlaceholder()
     {
         var c = new DeviceCatalog();

@@ -148,19 +148,18 @@ public sealed class BandwidthChartControl : FrameworkElement
         // ---- series ----
         double step = cw / (Capacity - 1);
         double offset = _scroll * step;
-        DrawSeries(dc, _down, downBrush, padL, padT, cw, ch, step, offset);
-        DrawSeries(dc, _up, upBrush, padL, padT, cw, ch, step, offset);
+        DrawSeries(dc, _down, downBrush, padL, padT, cw, ch, step, offset, scaleMax);
+        DrawSeries(dc, _up, upBrush, padL, padT, cw, ch, step, offset, scaleMax);
     }
 
     private void DrawSeries(DrawingContext dc, double[] values, Brush brush,
-        double padL, double padT, double cw, double ch, double step, double offset)
+        double padL, double padT, double cw, double ch, double step, double offset, double scaleMax)
     {
         int n = _count;
         // Points are right-anchored; the newest sample slides in from one step beyond
         // the right edge (clipped), producing the smooth scroll.
         double firstX = padL + cw - (n - 1) * step + offset;
         double bottom = padT + ch;
-        double scaleMax = seriesScaleMax();
         double scaleY(double v) => bottom - (v / scaleMax) * (ch - 2);
 
         // filled area under the curve
@@ -194,13 +193,6 @@ public sealed class BandwidthChartControl : FrameworkElement
         var pen = new Pen(brush, 1.7) { LineJoin = PenLineJoin.Round, StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
         pen.Freeze();
         dc.DrawGeometry(null, pen, lineGeo);
-
-        double seriesScaleMax()
-        {
-            double m = 1;
-            for (int i = 0; i < n; i++) if (values[i] > m) m = values[i];
-            return NiceCeiling(m);
-        }
     }
 
     private static double NiceCeiling(double v)
