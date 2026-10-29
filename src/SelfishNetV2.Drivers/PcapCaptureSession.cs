@@ -14,6 +14,7 @@ public sealed class PcapCaptureSession : IDisposable
     private Thread? _thread;
     private volatile bool _running;
     private bool _disposed;
+    private bool _abandoned;
 
     /// <summary>Raised on the session's own thread for every received frame.
     /// The span is valid only for the duration of the callback.</summary>
@@ -34,6 +35,9 @@ public sealed class PcapCaptureSession : IDisposable
     public void Start()
     {
         if (_disposed) throw new ObjectDisposedException(nameof(PcapCaptureSession));
+        if (_abandoned)
+            throw new InvalidOperationException(
+                "the previous receive thread did not exit; this capture cannot be restarted safely");
         if (_running) return;
         _running = true;
         _thread = new Thread(Loop) { IsBackground = true, Name = $"{_name}-rx" };
@@ -42,46 +46,56 @@ public sealed class PcapCaptureSession : IDisposable
 
     private void Loop()
     {
-        while (_running)
+        try
         {
-            ReceiveResult rc;
-            PacketView view;
-            try { rc = _capture.Receive(out view); }
-            catch (Exception ex)
+            while (_running)
             {
-                if (_running) ReceiveError?.Invoke(ex.Message);
-                break;
-            }
-            switch (rc)
-            {
-                case ReceiveResult.Packet:
-                    try { PacketReceived?.Invoke(view.Data); }
-                    catch { /* handler errors must not kill the capture thread */ }
+                ReceiveResult rc;
+                PacketView view;
+                try { rc = _capture.Receive(out view); }
+                catch (Exception ex)
+                {
+                    if (_running) ReceiveError?.Invoke(ex.Message);
                     break;
-                case ReceiveResult.Timeout:
-                    break; // normal; re-check _running
-                case ReceiveResult.Broken:
-                    return;  // breakloop during shutdown
-                case ReceiveResult.Error:
-                    if (_running) ReceiveError?.Invoke(_capture.LastError);
-                    return;
+                }
+                switch (rc)
+                {
+                    case ReceiveResult.Packet:
+                        try { PacketReceived?.Invoke(view.Data); }
+                        catch { /* handler errors must not kill the capture thread */ }
+                        break;
+                    case ReceiveResult.Timeout:
+                        break; // normal; re-check _running
+                    case ReceiveResult.Broken:
+                        return;  // breakloop during shutdown
+                    case ReceiveResult.Error:
+                        if (_running) ReceiveError?.Invoke(_capture.LastError);
+                        return;
+                }
             }
+        }
+        finally
+        {
+            _running = false; // a dead thread must never look alive
         }
     }
 
-    /// <summary>breakloop → join. Handle stays open; the session can be restarted.</summary>
-    public void Stop(int joinTimeoutMs = 5000)
+    /// <summary>breakloop → join. Returns false when the receive thread is still
+    /// alive and the capture must be leaked, never closed underneath it.</summary>
+    public bool Stop(int joinTimeoutMs = 5000)
     {
         _running = false;
         try { _capture.BreakLoop(); } catch { /* best effort */ }
         if (_thread is { IsAlive: true } t && !t.Join(joinTimeoutMs))
         {
-            // Thread is stuck: DO NOT dispose the capture — leak it rather than
-            // free a handle a thread is using. This path indicates a driver bug.
+            // Thread is stuck: mark abandoned. The handle is leaked rather than
+            // freed while a thread may still be inside pcap_next_ex.
+            _abandoned = true;
             _thread = null;
-            return;
+            return false;
         }
         _thread = null;
+        return true;
     }
 
     /// <summary>Send a frame on this session's handle (thread-safe).</summary>
@@ -93,10 +107,10 @@ public sealed class PcapCaptureSession : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        if (_abandoned) return; // the stuck thread still owns the handle
         Stop();
-        // Only reached when the receive thread provably exited (or never started,
-        // or was abandoned as a leak — in which case we intentionally skip close).
-        if (_thread == null)
+        // Only reached when the receive thread provably exited or never started.
+        if (_thread == null && !_abandoned)
             _capture.Dispose();
     }
 }

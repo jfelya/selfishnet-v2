@@ -54,6 +54,8 @@ public abstract class EngineSessionBase : IEngineSession
     private long _forwardedDown, _forwardedUp, _dropped;
     private long _spoofSendFailures;
     private int _sendFailureReported;
+    private int _receiveFatalReported;
+    private volatile bool _shuttingDown;
     private volatile EngineRunState _state = EngineRunState.Closed;
 
     public abstract EngineKind Kind { get; }
@@ -104,8 +106,10 @@ public abstract class EngineSessionBase : IEngineSession
         {
             if (_state != EngineRunState.Closed) CloseCore(healIfNeeded: true);
             _poisoned.Clear(); // any unhealed claims belong to the previous adapter/LAN
+            _shuttingDown = false;
             Interlocked.Exchange(ref _spoofSendFailures, 0);
             Interlocked.Exchange(ref _sendFailureReported, 0);
+            Interlocked.Exchange(ref _receiveFatalReported, 0);
             try
             {
                 if (!_abiChecked)
@@ -121,7 +125,7 @@ public abstract class EngineSessionBase : IEngineSession
                 var arpCap = Driver.OpenLive(adapter.PcapName, "arp", timeoutMs: ArpTimeoutMs);
                 _arp = new PcapCaptureSession(arpCap, "arp");
                 _arp.PacketReceived += OnArpFrame;
-                _arp.ReceiveError += e => RaiseError(EngineErrorKind.ReceiveError, e);
+                _arp.ReceiveError += OnReceiveError;
                 _arp.Start();
 
                 _lifeCts = new CancellationTokenSource();
@@ -159,22 +163,33 @@ public abstract class EngineSessionBase : IEngineSession
     private void CloseCore(bool healIfNeeded)
     {
         _state = EngineRunState.Closed;
+        _shuttingDown = true;
         StopDiscovery();
         _shapeCts?.Cancel();
         _lifeCts?.Cancel();
         _spoofWake.Set();
-        JoinThread(_spoofThread); _spoofThread = null;
+
+        bool workersJoined = JoinThread(_spoofThread);
+        _spoofThread = null;
         _ip?.Dispose(); _ip = null;   // breakloop → join → close (inside session)
         // Heal whenever asked — this also retries claims whose earlier heal failed
         // (UnspoofAll is a no-op when every claim has already been resolved).
         if (healIfNeeded)
             UnspoofAll();
         _poisoned.Clear();
-        JoinThread(_statsThread); _statsThread = null;
-        JoinThread(_janitorThread); _janitorThread = null;
+
+        workersJoined &= JoinThread(_statsThread); _statsThread = null;
+        workersJoined &= JoinThread(_janitorThread); _janitorThread = null;
         _shapeCts?.Dispose(); _shapeCts = null;
         _lifeCts?.Dispose(); _lifeCts = null;
-        _arp?.Dispose(); _arp = null;
+
+        // If a worker did not join, its handle is leaked rather than closed under
+        // a thread that may still be sending. This is the same C2 rule as the
+        // receive session and only happens after a driver/thread bug.
+        var arp = _arp;
+        _arp = null;
+        if (workersJoined) arp?.Dispose();
+
         Adapter = null;
         StateChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -314,8 +329,9 @@ public abstract class EngineSessionBase : IEngineSession
             var session = new PcapCaptureSession(ipCap, "ip");
             ConfigureIpCapture(session);
             session.PacketReceived += OnIpFrame;
-            session.ReceiveError += e => RaiseError(EngineErrorKind.ReceiveError, e);
+            session.ReceiveError += OnReceiveError;
 
+            Interlocked.Exchange(ref _receiveFatalReported, 0);
             _shapeCts?.Cancel(); _shapeCts?.Dispose();
             _shapeCts = new CancellationTokenSource();
             _spoofWake.Reset();
@@ -368,6 +384,7 @@ public abstract class EngineSessionBase : IEngineSession
     /// <summary>One re-poison round over every targeted device (original Spoof per victim).</summary>
     protected virtual void SendSpoofBurst()
     {
+        if (_shuttingDown) return;
         var adapter = Adapter;
         var arp = _arp;
         if (adapter == null || arp == null || adapter.GatewayIpKey == 0) return;
@@ -389,6 +406,7 @@ public abstract class EngineSessionBase : IEngineSession
         Span<byte> buf = stackalloc byte[ArpFrameBuilder.FrameLength];
         foreach (var v in targets)
         {
+            if (_shuttingDown) break;
             _poisoned[v.IpKey] = v.MacKey;
             // 1. to victim: "router is at us"
             ArpFrameBuilder.BuildPoison(buf, adapter.MacKey, adapter.GatewayIpKey, v.MacKey, v.IpKey);
@@ -695,8 +713,22 @@ public abstract class EngineSessionBase : IEngineSession
     private void RaiseError(EngineErrorKind kind, string detail) =>
         Error?.Invoke(this, new EngineErrorEventArgs(kind, detail));
 
-    private static void JoinThread(Thread? t, int timeoutMs = 5000)
+    /// <summary>A dead capture thread must not leave victims poisoned to a PC that
+    /// no longer forwards their traffic. Stop and heal once, off the capture thread.</summary>
+    private void OnReceiveError(string detail)
     {
-        if (t is { IsAlive: true }) t.Join(timeoutMs);
+        RaiseError(EngineErrorKind.ReceiveError, detail);
+        if (Interlocked.Exchange(ref _receiveFatalReported, 1) != 0) return;
+        _ = Task.Run(async () =>
+        {
+            try { await StopAndHealAsync().ConfigureAwait(false); }
+            catch { /* best effort: Close still retries any outstanding claims */ }
+        });
+    }
+
+    private static bool JoinThread(Thread? t, int timeoutMs = 5000)
+    {
+        if (t is not { IsAlive: true }) return true;
+        return t.Join(timeoutMs);
     }
 }

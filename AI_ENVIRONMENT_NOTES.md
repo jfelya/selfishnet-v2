@@ -28,12 +28,26 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 | Item | State |
 |---|---|
 | Build | `dotnet build src/SelfishNetV2.sln -c Release` → 0 warnings, 0 errors |
-| Tests | **92/92 green** in ~7 s (no hardware, no admin) |
+| Tests | **99/99 green** in ~15 s (no hardware, no admin) |
 | Field test | Real LAN: both engines limited a phone; runtime engine switch worked; healing worked |
 | Artifacts | `SelfishNetV2-x64.exe` 68.5 MB · `-x86.exe` 63.3 MB (project root) |
 | OS support | Windows 10 1607 → 22H2 and all Windows 11 releases; floor declared and guard-tested |
 | Elevation | Starts unelevated; offers one elevated restart only if Npcap restricts the driver |
 | Repo | Source + docs + the two portable exes at the root (versioned) |
+
+## 2b. Active workstream — hardening (started 2026-10-28)
+
+- Branch/worktree: `revamp-hardening`.
+- Audit: `docs/REVAMP_HARDENING_AUDIT.md`.
+- Approved plan: `docs/superpowers/plans/2026-10-28-revamp-hardening.md`.
+- Sequence: Must-fix tasks 1–2, persistence task 3, discovery/input task 4,
+  display/performance task 5, hygiene/docs task 6, final verification task 7.
+- Current status: **Task 1 complete** — capture shutdown is fail-safe, fatal
+  receive errors stop shaping and heal, and the full suite is 99/99 green.
+- Standing user requests: keep this file's storyline current after every
+  milestone; update `GUIDE_EN.txt` / `GUIDE_ES.txt` when behavior changes; do not
+  commit new root executables until the fixes are confirmed stable; remove
+  `reference/` and `prototype/` only after that confirmation.
 
 ## 3. How to build, test, publish, clean
 
@@ -214,6 +228,12 @@ Rules adopted (keep them):
     System/Traffic-control sections, larger Medium typography, live diagnostics, a **read-only**
     OS-forwarding row (IPEnableRouter) with a short explanatory hint, and a "Copy details" button.
     The OS-forwarding check exists only for this display — nothing warns or blocks on it.
+13. **Hardening workstream (2026-10-28, in progress)** — a full audit found shutdown
+    timeout hazards, a fatal-capture-error path that left victims disconnected, stale UI
+    state after adapter switches, saved caps not shown, unsafe IP-reuse inheritance,
+    non-atomic settings writes, and unbounded discovery. The approved plan is
+    `docs/superpowers/plans/2026-10-28-revamp-hardening.md`; Task 1 (fail-safe capture
+    shutdown and fatal receive errors) is complete. Full suite: 99/99.
 
 ## 11. Backlog (see `docs/PENDING.md`)
 
