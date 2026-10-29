@@ -30,7 +30,7 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 | Build | `dotnet build src/SelfishNetV2.sln -c Release` → 0 warnings, 0 errors |
 | Tests | **124/124 green** in ~15 s (no hardware, no admin) |
 | Field test | Real LAN: both engines limited a phone; runtime engine switch worked; healing worked |
-| Artifacts | Local `SelfishNetV2-x64.exe` / `-x86.exe` at the root (git-ignored, not in a clone) |
+| Artifacts | Local `SelfishNetV2-x64.exe` (68.6 MB) / `-x86.exe` (63.3 MB), rebuilt 2026-10-29 from `main`; git-ignored, not in a clone |
 | OS support | Windows 10 1607 → 22H2 and all Windows 11 releases; floor declared and guard-tested |
 | Elevation | Starts unelevated; offers one elevated restart only if Npcap restricts the driver |
 | Repo | Source + docs + guides; reference/prototype removed; portable exes git-ignored |
@@ -256,9 +256,10 @@ Rules adopted (keep them):
     not rebuilt or committed during hardening; update them only after a stable
     release check.
 14. **Repository cleanup (2026-10-29)** — the hardening branch was merged into `main`; the
-    two root executables were untracked and added to `.gitignore`; `reference/` and
-    `prototype/` were removed; the table refresh was returned to 1 Hz; current docs and
-    guides were updated. The worktree was removed after integration.
+    two root executables were untracked and added to `.gitignore`, then rebuilt from the
+    current code and smoke-started (x64/x86); `reference/` and `prototype/` were removed;
+    the table refresh was returned to 1 Hz; current docs and guides were updated. The
+    worktree was removed after integration.
 
 ## 11. Backlog (see `docs/PENDING.md`)
 
