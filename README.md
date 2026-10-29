@@ -18,7 +18,7 @@ shaping), shipped as a **single portable Windows executable**.
 | Windows 10 1607 → 22H2 (all releases) | ✅ Supported (1607 = .NET 8 runtime floor) |
 | Windows 10/11 x64 or 32-bit | ✅ `publish/x64` · `publish/x86` |
 | Windows 8.1 / 7 SP1 | ❌ Not in the modern build — see `docs/PENDING.md` (P1) |
-| Windows XP SP3 | ❌ Prefer the preserved original build in `reference/original-app-xp/` (`docs/PENDING.md` P2) |
+| Windows XP SP3 | ❌ Not supported; the old reference build is no longer included (`docs/PENDING.md` P2) |
 
 The Windows 10 1607 floor is declared in `src/Directory.Build.targets`, enforced by a guard test,
 and the platform analyzer flags any API newer than it. Details and caveats:
@@ -44,10 +44,9 @@ single elevated restart only if the driver is restricted.
 | Automated tests | ✅ 124/124 green |
 
 **Portable build:** run `src/publish.bat` → two self-contained exes in
-`publish/x64/SelfishNetV2.exe` and `publish/x86/SelfishNetV2.exe`. The copies at the
-project root are the last confirmed release; a source build writes only to `publish/`
-until the release is tested and the root copies are updated deliberately. No .NET
-install is needed — copy one anywhere.
+`publish/x64/SelfishNetV2.exe` and `publish/x86/SelfishNetV2.exe`. Copies at the
+project root are local convenience only and are git-ignored. No .NET install is
+needed — copy one anywhere.
 
 > Why two files? A self-contained .NET app embeds its runtime, and the runtime is
 > architecture-specific, so one exe cannot cover both 32-bit and 64-bit Windows. Same
@@ -58,8 +57,9 @@ install is needed — copy one anywhere.
 
 1. Install **Npcap** (https://npcap.com) if not already present — the only external prerequisite.
    Not sure? Just run the app: it opens normally and shows a **Download Npcap** button.
-2. Double-click `SelfishNetV2-x64.exe`. It starts **without** elevation; if your Npcap install
-   restricts the driver to administrators, it offers a one-click elevated restart.
+2. Run `publish/x64/SelfishNetV2.exe` after publishing (a copy at the project root is a local
+   convenience if present). It starts **without** elevation; if your Npcap install restricts the
+   driver to administrators, it offers a one-click elevated restart.
 3. Pick the adapter → set caps or **Block** per device → **Start Shaping**. Every discovered
    device is shaped automatically (no per-device spoof toggle). A background sweep every 60 s
    also picks up devices that join later; you never have to rescan manually.
@@ -115,20 +115,17 @@ Requirements: .NET SDK 8, Windows 10/11, Npcap (or WinPcap) for live packet I/O.
 | `AI_ENVIRONMENT_NOTES.md` | **Project context / single source of truth** — read this first |
 | `docs/` | Findings, master plan (`REVAMP_BLUEPRINT.md`), OS support, postmortem, backlog |
 | `GUIDE_EN.txt` / `GUIDE_ES.txt` | Plain-language user guides (English / Spanish) |
-| `SelfishNetV2-*.exe` | Portable executables at the root — versioned, clone-and-run |
-| `reference/original-app/`, `-xp/` | Untouched 2007 golden binaries (verification reference) |
-| `reference/redist/`, `reference/tools/` | Era installers and reverse-engineering scripts |
-| `prototype/` | Frozen proof-of-concept (reference only — not the final app) |
+| `SelfishNetV2-*.exe` | Local published copies at the root (git-ignored; build with `src/publish.bat`) |
 | `src/` | The revamp: Core · Drivers · Engines · Services · App (WPF) · Tests |
-| `tools/` | `clean.cmd` (reclaim space), history-purge script, artifact policy |
+| `tools/` | `clean.cmd` (reclaim space) and artifact policy |
 | `publish/` | Build output (git-ignored) |
 
 ## Repository hygiene
 
-Source, docs, reference material and the two **portable executables at the root**
-(`SelfishNetV2-x64.exe`, `SelfishNetV2-x86.exe`) are versioned, so a fresh clone is ready to run.
-Build output (`bin/`, `obj/`, `publish/`) is ignored; run `tools\clean.cmd` after publishing
-sessions. See `tools/README.md`.
+Source, docs and the two user guides are versioned. The portable executables are **not** tracked;
+build them with `src\publish.bat` and keep them locally (they are git-ignored). Build output
+(`bin/`, `obj/`, `publish/`) is ignored; run `tools\clean.cmd` after publishing sessions.
+See `tools/README.md`.
 
 ## Architecture in one paragraph
 

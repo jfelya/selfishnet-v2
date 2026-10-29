@@ -32,7 +32,7 @@
 | OS | Status |
 |---|---|
 | Windows 8.1 / 8 / 7 SP1 | ❌ Not supported by the .NET 8 build — see `PENDING.md` (P1) |
-| Windows Vista / XP SP3 | ❌ Not supported — the original 2007 build is preserved in `reference/original-app-xp/` — see `PENDING.md` (P2) |
+| Windows Vista / XP SP3 | ❌ Not supported — the original 2007 build was removed from this repository on 2026-10-29 — see `PENDING.md` (P2) |
 
 ## How the Windows 10/11 floor is declared and enforced
 
@@ -83,19 +83,19 @@ The other end of the range has the same problem in reverse:
 So "one exe from XP to 11" is technically impossible. The realistic maximum is: **one modern
 build for Win10/11** (current) plus, if ever needed, **one legacy-target build** for older systems.
 
-## The preserved XP build
+## The old XP build (no longer included)
 
-`reference/original-app-xp/` contains the untouched 2007 **Windows XP** release
-(`SelfishNetv0.2-beta.exe` + `PcapNet.dll`, `Packet.dll`, `WanPacket.dll`, 32-bit `npf.sys`, etc.).
-It is reference material, not part of the modern app:
+The untouched 2007 **Windows XP** release (`SelfishNetv0.2-beta.exe` + `PcapNet.dll`,
+`Packet.dll`, `WanPacket.dll`, 32-bit `npf.sys`, etc.) was removed from this repository on
+2026-10-29. It was reference material, not part of the modern app:
 
-- It requires **.NET Framework 2.0/3.5** and **WinPcap 4.1.3** (installer available in `reference/redist/`).
+- It requires **.NET Framework 2.0/3.5** and **WinPcap 4.1.3**.
 - It is 32-bit, unsigned, and unsupported by its original authors today.
-- It is the practical way to use the tool on XP without maintaining a second codebase.
+- It was the practical way to use the tool on XP without maintaining a second codebase.
 
-XP users should run that executable. It is deliberately **not** merged into `src/` or into the
-modern build: mixing 2007 binaries into the modern product would damage both the architecture
-and the trust story of the revamp.
+XP users who still need it must obtain the original release separately. It is deliberately not
+merged into `src/` or into the modern build: mixing 2007 binaries into the modern product would
+damage both the architecture and the trust story of the revamp.
 
 ## If support for older Windows becomes a requirement
 

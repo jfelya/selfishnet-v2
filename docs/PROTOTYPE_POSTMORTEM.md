@@ -1,8 +1,9 @@
 # Prototype Postmortem — Why the free-model prototype fell short
 
-> Internal engineering note. The frozen prototype lives in `prototype/SelfishNetV2.Test/`
-> and is kept for comparison only. This document records why it could not hold up on a
-> real network, and how each failure was engineered out of the revamp.
+> Internal engineering note. The frozen prototype lived in `prototype/SelfishNetV2.Test/`
+> and was removed on 2026-10-29; this document remains as its historical record. It
+> explains why the prototype could not hold up on a real network, and how each failure
+> was engineered out of the revamp.
 
 ---
 
@@ -71,7 +72,7 @@ These parts were reused conceptually (and re-verified) in the revamp.
 
 | Path | Contents |
 |---|---|
-| `prototype/SelfishNetV2.Test/` | Frozen prototype source (comparison only) |
+| `prototype/SelfishNetV2.Test/` | Frozen prototype source (removed 2026-10-29; historical) |
 | `docs/ORIGINAL_FINDINGS.md` | Verified mechanics of the original 2007 binary |
 | `docs/REVAMP_BLUEPRINT.md` §1 | Full defect catalogue (C1–C3, H1–H3, M1–M8) and prevention strategy |
 | `src/SelfishNetV2.Tests/` | One regression test per failure mode above |

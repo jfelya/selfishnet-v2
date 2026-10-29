@@ -52,8 +52,9 @@ app. XP is also unpatched, so this carries a permanent security and maintenance 
 - [ ] Test matrix: Windows XP SP3 x86 (VM).
 
 **Effort:** large. **Risk:** high (unsupported OS, security, maintenance).
-**Alternative that already works today:** the preserved original build in
-`reference/original-app-xp/` (documented in that folder's README).
+**Alternative:** the old 2007 XP build is no longer included in this repository
+(removed 2026-10-29). Obtain the original release separately if XP support is
+needed; it is not part of the modern build.
 
 **Decision gate:** proceed only if XP usage is demonstrated by real user reports.
 

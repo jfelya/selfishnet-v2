@@ -1,6 +1,6 @@
 # SelfishNet v2 Hardening Implementation Plan
 
-> **Status 2026-10-28:** all tasks and the fresh-review fix pass are complete; 124/124 tests green; package audit clean. Integration/merge is still the user's decision.
+> **Status 2026-10-29:** all tasks and the fresh-review fix pass are complete; 124/124 tests green; package audit clean. Merged into `main` and pushed; repository cleanup followed in a separate commit.
 >
 > **For agentic workers:** Use superpowers:executing-plans (inline) for this plan.
 > Steps use checkbox syntax. Each task ends with a green build, the full test suite,

@@ -2,7 +2,7 @@
 
 | Script | Purpose |
 |---|---|
-| `clean.cmd` / `clean.ps1` | Deletes regenerable build artifacts (`src/**/bin|obj`, `publish/`, the prototype's stale exe). Keeps the root portable exes unless `-IncludeExes` is passed. Safe by construction: it refuses to delete anything outside the project. |
+| `clean.cmd` / `clean.ps1` | Deletes regenerable build artifacts (`src/**/bin|obj`, `publish/`). Keeps the root portable exes unless `-IncludeExes` is passed. Safe by construction: it refuses to delete anything outside the project. |
 
 ## Usage
 
@@ -16,8 +16,8 @@ No Administrator rights are needed — it only touches files inside the project 
 
 ## Artifact policy
 
-- **Source, docs, reference material and the two portable exes at the root are versioned**, so a
-  fresh clone is ready to run.
-- **Build output is never versioned** (`bin/`, `obj/`, `publish/` are ignored).
-- Rebuilding the exes means committing new binaries (~130 MB per version). That is a deliberate
-  trade-off for clone-and-run convenience.
+- **Source, docs and guides are versioned.** The two portable exes at the root and all build
+  output are **git-ignored**; build them with `src\publish.bat` when needed.
+- A fresh clone contains source and docs, not binaries. This keeps the repository small and
+  avoids Git file-size limits.
+- `tools\clean.cmd -IncludeExes` also deletes the local root copies.

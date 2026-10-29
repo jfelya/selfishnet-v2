@@ -1998,7 +1998,7 @@ accent variants, a chart data table, and `AutomationProperties.Name` on icon-onl
 | Chart/theme wiring | `MainWindow.xaml.cs`, `ViewModels/MainViewModel.cs` | Summarised |
 | Startup order | `App.xaml.cs` | Summarised |
 | DPI | `app.manifest` | PerMonitorV2 |
-| Historical WinForms theme | `prototype/.../UI/Win11Theme.cs` | Appendix B |
+| Historical WinForms theme | Prototype source removed 2026-10-29 | Appendix B retains the tokens |
 
 ### 14.2 How to update this document
 
@@ -2052,9 +2052,9 @@ accent variants, a chart data table, and `AutomationProperties.Name` on icon-onl
 
 ## Appendix B — historical WinForms treatment
 
-Before the WPF rebuild, the prototype used a light, WinUI-inspired WinForms theme
-(`prototype/SelfishNetV2.Test/UI/Win11Theme.cs`). It is documented here because its tokens and
-DWM technique are independently reusable.
+Before the WPF rebuild, the prototype used a light, WinUI-inspired WinForms theme. The prototype
+source was removed on 2026-10-29; its tokens and DWM technique are retained below because they are
+independently reusable.
 
 ### B.1 Tokens
 

@@ -6,10 +6,9 @@
     Deletes only what can be rebuilt from source:
       - every bin/ and obj/ folder under src/
       - the publish/ output folder
-      - the prototype's bin/obj and its published 154 MB exe
 
-    The portable executables in the project root (SelfishNetV2-*.exe) are
-    deliverables and are KEPT unless -IncludeExes is passed.
+    The local portable executables in the project root (SelfishNetV2-*.exe)
+    are git-ignored build artifacts and are KEPT unless -IncludeExes is passed.
 
     The script refuses to delete anything outside the project folder.
 
@@ -61,9 +60,6 @@ Get-ChildItem -LiteralPath (Join-Path $root 'src') -Directory -ErrorAction Silen
 }
 
 $targets.Add((Join-Path $root 'publish'))
-$targets.Add((Join-Path $root 'prototype\SelfishNetV2.Test\bin'))
-$targets.Add((Join-Path $root 'prototype\SelfishNetV2.Test\obj'))
-$targets.Add((Join-Path $root 'prototype\SelfishNetV2.Test\SelfishNetV2.exe'))
 
 if ($IncludeExes) {
     Get-ChildItem -LiteralPath $root -Filter 'SelfishNetV2-*.exe' -File -ErrorAction SilentlyContinue |

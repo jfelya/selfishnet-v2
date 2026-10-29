@@ -23,27 +23,28 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 - **Defaults:** Spanish UI + dark theme, window starts maximized.
 - **Only external prerequisite:** Npcap (or legacy WinPcap). The app itself needs no installer.
 
-## 2. Current state (verified 2026-10-28)
+## 2. Current state (verified 2026-10-29)
 
 | Item | State |
 |---|---|
 | Build | `dotnet build src/SelfishNetV2.sln -c Release` → 0 warnings, 0 errors |
 | Tests | **124/124 green** in ~15 s (no hardware, no admin) |
 | Field test | Real LAN: both engines limited a phone; runtime engine switch worked; healing worked |
-| Artifacts | `SelfishNetV2-x64.exe` 68.5 MB · `-x86.exe` 63.3 MB (project root) |
+| Artifacts | Local `SelfishNetV2-x64.exe` / `-x86.exe` at the root (git-ignored, not in a clone) |
 | OS support | Windows 10 1607 → 22H2 and all Windows 11 releases; floor declared and guard-tested |
 | Elevation | Starts unelevated; offers one elevated restart only if Npcap restricts the driver |
-| Repo | Source + docs + the two portable exes at the root (versioned) |
+| Repo | Source + docs + guides; reference/prototype removed; portable exes git-ignored |
 
 ## 2b. Active workstream — hardening (started 2026-10-28)
 
-- Branch/worktree: `revamp-hardening`.
+- Branch/worktree: `revamp-hardening`, merged into `main` on 2026-10-29; worktree
+  removed after integration.
 - Audit: `docs/REVAMP_HARDENING_AUDIT.md`.
 - Approved plan: `docs/superpowers/plans/2026-10-28-revamp-hardening.md`.
 - Sequence: Must-fix tasks 1–2, persistence task 3, discovery/input task 4,
   display/performance task 5, hygiene/docs task 6, final verification task 7.
-- Current status: **Tasks 1–7 complete; final-review fix pass applied; integration
-  is the user's decision.** Capture
+- Current status: **Tasks 1–7 complete; final-review fix pass applied; merged into
+  `main` on 2026-10-29.** Capture
   shutdown is fail-safe (a stuck spoof/sweep is leaked, not closed), fatal receive
   errors stop shaping and heal, catalog clears remove UI rows, saved caps render on
   first load, and an unmatched pcap GUID is rejected. Device memory writes
@@ -58,9 +59,9 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
   Release build 0 warnings/0 errors, **124/124 tests green**, package audit clean,
   working tree clean on branch `revamp-hardening`.
 - Standing user requests: keep this file's storyline current after every
-  milestone; update `GUIDE_EN.txt` / `GUIDE_ES.txt` when behavior changes; do not
-  commit new root executables until the fixes are confirmed stable; remove
-  `reference/` and `prototype/` only after that confirmation.
+  milestone; update `GUIDE_EN.txt` / `GUIDE_ES.txt` when behavior changes; never
+  commit the root executables (they are git-ignored); `reference/` and
+  `prototype/` were removed on 2026-10-29 after the hardening branch was accepted.
 
 ## 3. How to build, test, publish, clean
 
@@ -127,14 +128,8 @@ SelfishNet v2/
 ├── README.md                        # human-facing overview, support matrix, hygiene
 ├── GUIDE_EN.txt / GUIDE_ES.txt      # plain-language user guides (user-maintained, do not rewrite)
 ├── VISUAL_DESIGN_SYSTEM.md          # user-provided design-system reference
-├── SelfishNetV2-{x64,x86}.exe        # deliverables at the root — versioned (clone-and-run)
+├── SelfishNetV2-{x64,x86}.exe        # local published copies — git-ignored
 ├── docs/                            # blueprint, findings, OS support, postmortem, backlog, units, i18n spec
-├── reference/                       # golden material, never modify
-│   ├── original-app/                #   2007 build (Win7+ variant) + DLLs + npf.sys
-│   ├── original-app-xp/             #   2007 XP build (+ its README)
-│   ├── redist/                      #   era installers (WinPcap, VC++ redists, .NET 4)
-│   └── tools/                       #   analyze_app.ps1, disasm.ps1
-├── prototype/                       # frozen free-model prototype (reference only)
 ├── src/                             # the revamp
 │   ├── SelfishNetV2.Core/           #   DTOs, DeviceCatalog, ArpFrameBuilder, PacketClassifier, TokenBucket
 │   ├── SelfishNetV2.Drivers/        #   wpcap FFI, PcapCaptureSession, LoopbackDriver, probes, ABI self-test
@@ -165,7 +160,7 @@ SelfishNet v2/
 | 1 Hz live speeds | UI computes per-device rates from lifetime counters once per second, matching the engine's cap/display window |
 | Healing is paced and quiet | Restore bursts sleep 4 ms/pair (Realtek/Npcap error 31 under dense sends); heal-path send failures are counted, never shown as dialogs |
 | Fail-closed shaping | A gateway-less adapter is rejected (`MsgNoGateway`) and send failures are surfaced — never a silent "running but not spoofing" state |
-| Two portable exes versioned at the root | Clone-and-run convenience; a deliberate ~130 MB-per-rebuild trade-off (build output stays ignored) |
+| Portable exes git-ignored, not versioned | Keeps the repository source-only and under GitHub's file limits; build with `src\publish.bat` when needed |
 | Spanish + dark defaults, maximized start | User preference |
 | Win7/XP deferred | Documented options in `docs/PENDING.md` (net48 and net40 forks) |
 
@@ -228,8 +223,9 @@ Rules adopted (keep them):
    publish (x64 + x86), WinRT projection excluded, support matrix documented.
 7. **Repository hygiene** — history rewritten to purge ~200 MB of binaries; build output ignored;
    `tools/clean.cmd` added (~1.1 GB reclaimed locally).
-8. **Clone-and-run** — the two portable exes (x64/x86) were re-added to the repository root as
-   versioned deliverables at the user's request; ARM support was dropped. The app now shows a
+8. **Clone-and-run (later reverted)** — the two portable exes (x64/x86) were once re-added to
+   the repository root as versioned deliverables; they were removed from tracking on 2026-10-29
+   and are now git-ignored local artifacts. ARM support was dropped. The app shows a
    "Download Npcap" button when the only prerequisite is missing.
 9. **Field report "it stopped working"** — live diagnosis showed the app still spoofs and counts
    correctly; the real cause was a phone rotating its Wi-Fi MAC, so the saved cap stayed on the old
@@ -259,6 +255,10 @@ Rules adopted (keep them):
     packages have no known vulnerabilities. The root executables were intentionally
     not rebuilt or committed during hardening; update them only after a stable
     release check.
+14. **Repository cleanup (2026-10-29)** — the hardening branch was merged into `main`; the
+    two root executables were untracked and added to `.gitignore`; `reference/` and
+    `prototype/` were removed; the table refresh was returned to 1 Hz; current docs and
+    guides were updated. The worktree was removed after integration.
 
 ## 11. Backlog (see `docs/PENDING.md`)
 

@@ -1,6 +1,6 @@
 # SelfishNet v2 — Hardening Audit (2026-10-28)
 
-> Status: **approved and implemented**. This is the audit record behind
+> Status: **approved, implemented, and merged into `main` (2026-10-29)**. This is the audit record behind
 > `docs/superpowers/plans/2026-10-28-revamp-hardening.md`. It is a snapshot: the
 > baseline below was 96 tests; the implemented branch is at **124/124 green**.
 > The living project story stays in `AI_ENVIRONMENT_NOTES.md`.
@@ -95,6 +95,7 @@ server were not assumed.
 
 - No rewrite of the engines or WPF shell.
 - No new runtime dependencies.
-- No changes to `reference/` or `prototype/` until the modern build is confirmed
-  stable; after that the user wants them removed in a separate cleanup.
+- No changes to `reference/` or `prototype/` during the hardening branch. Both
+  were removed on 2026-10-29 after the branch was accepted, in the repository
+  cleanup commit.
 - No new exe commit until the fixes are confirmed stable.
