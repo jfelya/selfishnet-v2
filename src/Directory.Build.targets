@@ -1,0 +1,44 @@
+<Project>
+
+  <!--
+    Windows compatibility, declared once for every project in the solution.
+
+      SupportedOSPlatformVersion = Windows 10 1607 (build 14393)
+        The minimum OS on which the .NET 8 runtime loads. Every Windows 10
+        release from 1607 (2016) through 22H2, and every Windows 11 release,
+        is covered by this floor.
+
+      TargetPlatformVersion = Windows 10 2004 (build 19041)
+        The newest Windows SDK surface we compile against. Keeping it above
+        the supported floor lets the platform analyzer (CA1416) flag any API
+        that would not exist on the 1607 floor.
+
+    This lives in Directory.Build.targets (not .props) because MSBuild imports
+    .props before the project body, where $(TargetFramework) is still empty —
+    a condition on it there silently evaluates to false. The guard test
+    CompatibilityTests.Build_Declares_Windows10_1607_As_MinimumSupportedOS
+    keeps this honest.
+  -->
+  <PropertyGroup Condition="$(TargetFramework.Contains('-windows'))">
+    <TargetPlatformVersion>10.0.19041.0</TargetPlatformVersion>
+    <SupportedOSPlatformVersion>10.0.14393.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <!--
+    Declaring a Windows 10 target platform makes the SDK copy the WinRT
+    projection assembly (Microsoft.Windows.SDK.NET.dll, ~24 MB) into every
+    publish output, even though this application uses no WinRT APIs at all.
+    Drop it from the publish item list: the single-file bundler and deps.json
+    are both generated from this list, so nothing dangles. Startup is verified
+    by a real launch of the published executable.
+  -->
+  <Target Name="DropUnusedWinRtProjection"
+          AfterTargets="ComputeResolvedFilesToPublishList"
+          Condition="$(TargetFramework.Contains('-windows'))">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition="'%(FileName)' == 'Microsoft.Windows.SDK.NET'" />
+    </ItemGroup>
+  </Target>
+
+</Project>

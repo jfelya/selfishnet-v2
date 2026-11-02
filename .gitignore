@@ -1,0 +1,40 @@
+# ---------------------------------------------------------------
+# SelfishNet v2 - repository ignore rules
+# ---------------------------------------------------------------
+
+# Build output (any depth)
+[Bb]in/
+[Oo]bj/
+publish/
+TestResults/
+artifacts/
+
+# Debug symbols / logs produced by local builds
+*.pdb
+*.log
+*.binlog
+*.trx
+
+# IDE / editor state
+.vs/
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+
+# OS noise
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Local portable builds at the project root. They are published artifacts, not
+# source: build them with src\publish.bat; never commit them.
+/SelfishNetV2-x64.exe
+/SelfishNetV2-x86.exe
+
+# NOTE: the following are deliberately TRACKED (project material, not build output):
+#   - GUIDE_EN.txt / GUIDE_ES.txt (user documentation)
+#   - docs/**, src/**            (specifications and application source)

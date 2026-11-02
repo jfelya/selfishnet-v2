@@ -1,0 +1,228 @@
+﻿SELFISHNET v2 - HOW IT WORKS
+A plain-language guide to what this app does and how it works.
+
+--------------------------------------------------------------------
+1. WHAT THIS APP DOES
+--------------------------------------------------------------------
+SelfishNet v2 is a LAN (local area network) traffic controller for Windows.
+From a single PC on your network, you can:
+
+  - View devices connected to your local network (IP address, MAC address, and name).
+  - Limit each device's download and upload speeds.
+  - Block a device's network traffic entirely.
+  - Monitor live bandwidth charts for the entire network and individual devices.
+
+The app operates at a low level. Rather than configuring your router, it temporarily redirects selected devices' network traffic through your computer using ARP spoofing. Your computer then forwards their traffic, subject to the limits you configure. When you press Stop or close the app normally, SelfishNet sends corrective ARP messages to help restore the original network mappings.
+
+Typical uses include testing how an application behaves on a slow connection, limiting the bandwidth available to a guest device, or learning how local networks work. Use this app only on networks you own or are explicitly authorized to test.
+
+--------------------------------------------------------------------
+2. THE CORE IDEA: ARP AND THE "MAN-IN-THE-MIDDLE"
+--------------------------------------------------------------------
+On a LAN, devices use IP addresses to identify network destinations, but Ethernet frames also require the destination's hardware address (MAC address). The protocol that maps an IPv4 address to a MAC address is called ARP (Address Resolution Protocol).
+
+When a computer needs to send traffic to the router, it broadcasts an ARP request to the local network: "Who has 192.168.1.1? Tell me your MAC address." The router replies with its MAC address, and the computer temporarily stores that mapping in its ARP cache.
+
+ARP was designed without built-in authentication. Consequently, devices may accept forged ARP replies and update their caches with incorrect IP-to-MAC mappings.
+
+SelfishNet takes advantage of this behavior. For each device you select, it sends two key forged ARP replies:
+
+  1. To the device:  "The router's IP address is associated with MY MAC address."
+  2. To the router:  "That device's IP address is associated with MY MAC address."
+
+If both sides accept these forged mappings, they send traffic intended for each other to your computer instead. Your computer is now positioned between the device and the router. This technique is called ARP spoofing, and the resulting position is commonly known as a man-in-the-middle (MITM) position.
+
+The app periodically resends forged ARP replies to maintain the redirection because devices may refresh their ARP caches or receive conflicting ARP information. The interval is every 2 seconds with the Modern engine and every 5 seconds with the Legacy engine. The Modern engine also uses reactive ARP defense to respond to certain ARP events that could undo the redirection.
+
+When the app stops, the forged mappings may remain until they are overwritten or expire. SelfishNet also sends corrective ARP messages when stopping to help restore the original mappings (see Section 6).
+
+--------------------------------------------------------------------
+3. HOW TRAFFIC IS FORWARDED AND LIMITED
+--------------------------------------------------------------------
+While the app is positioned between a controlled device and the router, it receives traffic redirected through your computer. For each packet, it determines how to handle it based on its direction, the device's settings, and the configured bandwidth limits.
+
+  Download (router -> device):
+    The packet arrives from the router and is addressed to a device
+    being controlled. If the device is blocked or its applicable
+    bandwidth limit has been reached, the packet is dropped. Otherwise,
+    the app rewrites the destination MAC address to the device's real
+    MAC address and forwards the packet.
+
+  Upload (device -> router):
+    The packet originates from a controlled device and is intended for
+    the router. The same basic rule applies: the packet is dropped if
+    the device is blocked or its applicable bandwidth limit has been
+    reached. Otherwise, the app rewrites the destination MAC address
+    to the router's real MAC address and forwards the packet.
+
+  Traffic for your own PC:
+    Counted in the statistics but not re-forwarded by the app.
+
+The app provides two traffic-control engines, which implement bandwidth limiting differently:
+
+  LEGACY ENGINE
+    A faithful implementation of the original 2007 program's mechanics.
+    It enforces limits using fixed 1-second windows. At the start of
+    each second, the device's bandwidth allowance resets. Once the
+    allowance has been used up, additional packets are dropped until
+    the next second begins. This approach is simple and predictable,
+    but it can produce bursts of traffic followed by periods of packet
+    loss.
+
+    The Legacy engine retains the original packet-handling behavior,
+    including its four-frame ARP spoofing sequence. It does not use
+    the Modern engine's reactive ARP defense and does not provide
+    the same VLAN-aware packet handling.
+
+  MODERN ENGINE (default)
+    Uses the same basic ARP spoofing and packet-forwarding approach,
+    but provides smoother bandwidth control through a token bucket
+    algorithm. Tokens accumulate continuously at a rate determined
+    by the configured limit, up to the bucket's capacity. A packet
+    can be forwarded only when sufficient tokens are available.
+    This helps reduce the bursty behavior of the Legacy engine.
+
+    The Modern engine also supports VLAN-tagged IPv4 traffic and uses
+    reactive ARP defense to respond to certain ARP events that could
+    restore the original mappings. Its spoofing sequence omits an
+    inert frame retained by the Legacy engine.
+
+You can switch engines at any time using the toolbar. When you do, the app stops traffic shaping, attempts to restore the original ARP mappings, shuts down the current engine, starts the other engine, and resumes operation. Your discovered devices, configured limits, and device names are preserved.
+
+Bandwidth limits can be entered in KByte/s or KBit/s using the unit toggle in the toolbar. A value of 0 means unlimited. Internally, limits are stored as integer bytes per second, so switching display units does not change the configured bandwidth limit, apart from possible rounding when displaying or entering whole-number values.
+
+--------------------------------------------------------------------
+4. WHAT THE APP READS (AND WHAT IT DOES NOT)
+--------------------------------------------------------------------
+The app inspects Ethernet and IP packet headers to identify addresses, classify traffic, rewrite MAC addresses for forwarding, and measure traffic rates. It does not decrypt application traffic or serialize packet payloads to disk.
+
+The app's persistent data consists of two JSON files (plus `.bak` backups after a save):
+
+  - %AppData%\SelfishNetV2\settings.json
+    Stores application settings, including language, theme, bandwidth
+    units, the last-used network adapter, and the selected engine.
+
+  - %AppData%\SelfishNetV2\known_devices.json
+    Stores known-device information associated with MAC addresses,
+    including custom names, bandwidth limits, Block settings,
+    the last known IP address, and the last-seen information.
+
+No diagnostic or traffic log is written by the application.
+
+--------------------------------------------------------------------
+5. DEVICE DISCOVERY
+--------------------------------------------------------------------
+When the app starts, it scans the local subnet for devices and then repeats the scan approximately every 60 seconds. It sends ARP requests for addresses within the subnet and listens for replies to identify active devices.
+
+The app also learns about devices by passively monitoring ARP traffic already present on the network, allowing many devices to appear without an explicit scan.
+
+The Discover button triggers an immediate scan. Device names are obtained through reverse DNS lookups when available. You can rename a device by double-clicking its name. Names are stored by MAC address, so they remain associated with the same device even if its IP address changes.
+
+Each scan is limited to 4,096 addresses so a very large subnet cannot make discovery run for hours. Passive ARP learning still picks up active devices outside that window. The status bar returns to Ready when the scan stops.
+
+--------------------------------------------------------------------
+6. LEAVING THE NETWORK CLEAN (HEALING)
+--------------------------------------------------------------------
+When traffic shaping stops, devices may still have ARP cache entries that associate the router's IP address with your computer's MAC address, and vice versa. The app attempts to correct these mappings by sending ARP messages containing the genuine MAC addresses.
+
+The restoration procedure includes:
+
+  - 35 pairs of unicast corrective ARP messages between each
+    controlled device and the router.
+  - 3 broadcast ARP announcements for the router and 3 for each
+    device. These attempt to refresh ARP caches, including on
+    machines that did not respond to the unicast corrections.
+
+The app tracks every device whose ARP mappings it has modified, independently of the current checkboxes. This helps ensure that devices are not overlooked during restoration. Unchecking a device during an active session triggers an immediate restoration attempt for that device. Stopping traffic shaping, switching engines, changing network adapters, and removing a device from the active catalog also trigger the appropriate restoration procedure.
+
+Before healing, the app attempts to resolve the router's MAC address if it is no longer known. If restoration cannot be completed, the app retains the affected device's record for another attempt when possible.
+
+If the app is forcibly terminated, such as through Task Manager or a power loss, it cannot perform this cleanup. The forged ARP entries may remain until they are overwritten or expire. How long that takes varies by device and operating system.
+
+Using Stop or closing the app normally gives SelfishNet an opportunity to send corrective ARP messages before it exits. However, ARP restoration cannot be guaranteed in every network environment.
+
+--------------------------------------------------------------------
+7. WHAT IT NEEDS TO RUN
+--------------------------------------------------------------------
+  - Windows 10 or 11. Builds are available for both 64-bit and 32-bit
+    Windows. Use the x64 build on a modern 64-bit PC.
+  - Npcap (https://npcap.com) or legacy WinPcap. Npcap is the modern,
+    signed packet-capture driver, and the app detects the available
+    driver automatically. This is the only external component required
+    for live packet capture and transmission.
+  - Administrator privileges may be required depending on the packet
+    driver's configuration. The app normally starts without elevation,
+    checks whether it can access the packet driver, and offers to
+    restart with Administrator privileges if access is denied.
+
+SelfishNet is distributed as a portable executable, with no separate
+.NET installation required. Only one copy can run at a time; launching
+a second copy shows a short message and exits.
+
+--------------------------------------------------------------------
+8. LIMITS AND KNOWN EDGE CASES
+--------------------------------------------------------------------
+  - Only one network adapter and one subnet can be managed at a time.
+  - IPv4 only; IPv6 traffic is not supported.
+  - Devices must be on the same local network segment (Layer 2).
+  - VLAN-tagged IPv4 traffic is supported by the Modern engine.
+    The Legacy engine retains the original fixed-offset packet handling
+    and may not handle VLAN-tagged traffic correctly.
+  - Upload limiting depends on the target device accepting the forged
+    ARP reply and on the app having the correct router MAC address.
+    If a device ignores the forged reply, its upload traffic may bypass
+    the limit even when download limiting works.
+  - Some Wi-Fi networks enable client isolation or ARP protection.
+    These features may prevent ARP spoofing or block the device-to-device
+    communication required for the technique to work. This is a network
+    configuration or compatibility limitation, not necessarily an
+    application bug.
+  - If Windows IP forwarding is enabled through the IPEnableRouter
+    setting, traffic may bypass the app's intended packet-handling path,
+    so bandwidth limits may not behave as expected. The app reports the
+    forwarding state; follow its guidance for this configuration.
+  - Mesh networks and other setups with multiple gateway MAC addresses
+    are only partially supported. The app tracks a single gateway
+    identity, which may not cover every path used by the network.
+  - The app does not limit traffic originating from or destined for
+    your own PC.
+  - A limit below 1 KByte/s is shown as `<1` in KByte/s mode. Switch to
+    KBit/s to edit that value without changing it.
+  - If the packet driver stops unexpectedly, the app stops shaping and
+    attempts to restore the ARP tables. Fix or reinstall the driver, then
+    restart the app.
+
+--------------------------------------------------------------------
+9. QUICK START
+--------------------------------------------------------------------
+  1. Run SelfishNetV2.exe. If packet-driver access is denied, follow
+     the prompt to restart the app with Administrator privileges.
+  2. Select the network adapter connected to the LAN containing your
+     router or default gateway.
+  3. Wait for devices to appear automatically, or click Discover to
+     scan for them immediately.
+  4. Enter download and upload limits in the device grid, or enable
+     Block to prevent a device's traffic from being forwarded.
+     All discovered devices are included in traffic control.
+  5. Click Start Shaping to begin. The status indicator turns green
+     when shaping is active.
+  6. Click Stop before closing the app to initiate network restoration.
+     Closing the app normally also triggers the restoration procedure.
+
+Tips:
+  - Keep the app running while traffic shaping is active. Closing it
+    stops shaping and initiates network restoration.
+  - If a limit does not appear to take effect, verify the device's
+    settings and try stopping and restarting traffic shaping. Although
+    the engine reads limits dynamically, restarting can trigger a fresh
+    ARP-spoofing cycle that may help with devices that have retained
+    conflicting ARP entries.
+  - Use the Legacy/Modern engine switch to compare the behavior of
+    fixed-window limiting and token-bucket shaping.
+
+--------------------------------------------------------------------
+10. SAFETY AND LEGAL NOTE
+--------------------------------------------------------------------
+Redirecting another device's network traffic is an intrusive operation that can disrupt connectivity and expose traffic to interception. Use SelfishNet only on networks you own or have explicit permission to test. The authors accept no responsibility for unauthorized or improper use.
+
+When stopped normally, the app attempts to restore the network's original ARP mappings by sending genuine unicast corrections and broadcast ARP announcements. These messages help refresh ARP caches, but restoration cannot be guaranteed in every network environment, particularly if the app is forcibly terminated or devices reject the corrective messages.
