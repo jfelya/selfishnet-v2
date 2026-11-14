@@ -92,8 +92,7 @@ git-ignored. No .NET install is needed — copy it anywhere.
   leaving victims pointed at a PC that no longer forwards.
 - **Network changes:** if the active adapter disappears or its IP/gateway changes, the app
   stops shaping, attempts a best-effort restore, clears the old LAN rows, and prompts for the
-  new adapter. Reconnecting to the old network is required to retry restoration; devices may
-  otherwise keep stale ARP entries until their caches expire.
+  new adapter.
 - **Comfort features:** per-device speeds refresh once per second, limit boxes accept digits only and
   commit empty as 0, **Reset limits** returns every device to unlimited in one click, and a
   sub-1 KByte/s cap is shown as `<1` instead of looking unlimited.

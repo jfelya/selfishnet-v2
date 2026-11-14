@@ -191,9 +191,7 @@ a second copy shows a short message and exits.
     attempts to restore the ARP tables. Fix or reinstall the driver, then
     restart the app.
   - If Wi-Fi disconnects or changes networks, shaping stops and the app
-    asks you to select the new adapter. Devices on the old network may keep
-    stale ARP entries until their caches expire; reconnect to that network
-    if you need SelfishNet to attempt restoration.
+    asks you to select the new adapter.
 
 --------------------------------------------------------------------
 9. QUICK START

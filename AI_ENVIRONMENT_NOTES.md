@@ -68,8 +68,7 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 - Stack: .NET 10 LTS, WPF, single self-contained x64 exe.
 - Network recovery: adapter removal/change is detected from Npcap errors and
   `NetworkChange` events; shaping stops, old LAN rows clear, and the app prompts
-  for the new adapter. The message explains that old-LAN ARP entries may persist
-  until caches expire or the old network is reconnected.
+  for the new adapter.
 - Tests: 126/126 green; .NET 10 build 0 warnings/0 errors.
 - Published x64 startup smoke test passed on Windows with Npcap installed (main
   window opened and closed cleanly; no shaping session was started).
@@ -281,8 +280,7 @@ Rules adopted (keep them):
 16. **.NET 10, x64-only, network recovery (2026-11-13)** — migrated all projects to
     .NET 10 LTS and a single x64 publish; added adapter-removal detection and a
     `NetworkChange` watcher that stops shaping, drops the old LAN rows, and prompts for
-    the new adapter. The message explains that the old LAN may keep stale ARP entries
-    until caches expire or the old network is reconnected. Tests: 126/126.
+    the new adapter. Tests: 126/126.
 
 ## 11. Backlog (see `docs/PENDING.md`)
 
