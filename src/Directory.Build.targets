@@ -4,7 +4,7 @@
     Windows compatibility, declared once for every project in the solution.
 
       SupportedOSPlatformVersion = Windows 10 1607 (build 14393)
-        The minimum OS on which the .NET 8 runtime loads. Every Windows 10
+        The minimum OS on which the .NET 10 runtime loads. Every Windows 10
         release from 1607 (2016) through 22H2, and every Windows 11 release,
         is covered by this floor.
 

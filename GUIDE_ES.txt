@@ -162,9 +162,7 @@ Al utilizar Stop o cerrar la aplicación normalmente, SelfishNet tiene la oportu
 --------------------------------------------------------------------
 7. REQUISITOS PARA EJECUTAR LA APLICACIÓN
 --------------------------------------------------------------------
-  - Windows 10 u 11. Hay versiones disponibles para Windows de 64 y
-    32 bits. En una PC moderna con Windows de 64 bits, utiliza la
-    versión x64.
+  - Windows 10 u 11 de 64 bits. Esta versión solo admite Windows x64.
   - Npcap (https://npcap.com) o el antiguo WinPcap. Npcap es el
     controlador moderno y firmado para la captura de paquetes. La
     aplicación detecta automáticamente el controlador disponible.
@@ -217,6 +215,11 @@ SelfishNet se distribuye como un ejecutable portátil, por lo que no requiere un
   - Si el controlador de paquetes deja de funcionar de forma inesperada,
     la aplicación detiene el control e intenta restaurar las tablas ARP.
     Corrige o reinstala el controlador y reinicia la aplicación.
+  - Si el Wi-Fi se desconecta o cambia de red, el control se detiene y la
+    aplicación pide seleccionar el nuevo adaptador. Los dispositivos de la
+    red anterior pueden conservar entradas ARP obsoletas hasta que sus
+    cachés caduquen; reconéctate a esa red si necesitas que SelfishNet
+    intente la restauración.
 
 --------------------------------------------------------------------
 9. INICIO RÁPIDO

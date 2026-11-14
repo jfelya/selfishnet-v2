@@ -6,8 +6,8 @@
 
 | Release | Build | Status |
 |---|---|---|
-| 1507 (RTM) | 10240 | ❌ Below the .NET 8 runtime floor (and long EOL) |
-| 1511 | 10586 | ❌ Below the .NET 8 runtime floor (and long EOL) |
+| 1507 (RTM) | 10240 | ❌ Below the .NET 10 runtime floor (and long EOL) |
+| 1511 | 10586 | ❌ Below the .NET 10 runtime floor (and long EOL) |
 | **1607 (Anniversary)** | **14393** | ✅ **Minimum supported** — the declared floor |
 | 1703 / 1709 / 1803 | 15063 / 16299 / 17134 | ✅ Supported |
 | 1809 | 17763 | ✅ Supported (dark title bar via the older DWM attribute) |
@@ -24,14 +24,13 @@
 
 | Target | Artifact | Notes |
 |---|---|---|
-| Windows 10/11 x64 | `publish/x64/SelfishNetV2.exe` | Primary build |
-| Windows 10/11 32-bit | `publish/x86/SelfishNetV2.exe` | Also runs on x64 via WOW64 |
+| Windows 10/11 x64 | `publish/x64/SelfishNetV2.exe` | Only supported architecture |
 
 ### Out of scope for the modern build
 
 | OS | Status |
 |---|---|
-| Windows 8.1 / 8 / 7 SP1 | ❌ Not supported by the .NET 8 build — see `PENDING.md` (P1) |
+| Windows 8.1 / 8 / 7 SP1 | ❌ Not supported by the .NET 10 build — see `PENDING.md` (P1) |
 | Windows Vista / XP SP3 | ❌ Not supported — the original 2007 build was removed from this repository on 2026-10-29 — see `PENDING.md` (P2) |
 
 ## How the Windows 10/11 floor is declared and enforced
@@ -55,27 +54,27 @@
 | Dark title bar | DWM attribute 20 (1903+/11) with automatic fallback to attribute 19 (1809); below 1809 the standard title bar is kept — nothing breaks |
 | OS detection | Win10/11 `supportedOS` GUID in the manifest; the About dialog shows the detected version |
 | Future API drift | Floor declared + analyzer active + guard test |
-| Architecture differences | `pcap_pkthdr` is asserted at 16 bytes (identical layout on x86/x64) and covered by a test; all pointer arithmetic uses `IntPtr.Size` |
+| Architecture | x64 only; `pcap_pkthdr` is asserted at 16 bytes and covered by a test; pointer arithmetic still uses `IntPtr.Size` |
 | Bundle bloat from the platform declaration | The unused WinRT projection (`Microsoft.Windows.SDK.NET.dll`, ~24 MB) is excluded from publish; startup is verified by launching the published exe |
 | Startup on a real machine | The published x64 build was launched and confirmed stable (no crash, clean exit) |
 
 ## Known platform caveats
 
 - **Windows 10 in S mode** cannot run unsigned desktop applications; the machine must leave S mode.
-- **Windows 10 1507/1511** are below the .NET 8 floor; they have been out of support for years.
+- **Windows 10 1507/1511** are below the .NET 10 floor; they have been out of support for years.
 - Groups of settings/device data are stored in `%AppData%\SelfishNetV2\` — per-user, so no
   compatibility difference between Windows editions.
 
 ## Why one binary cannot cover Windows XP → 11
 
-The app is a **self-contained .NET 8 application**: the .NET runtime is embedded inside the
-executable. That sets a hard floor at the operating systems .NET 8 supports — Windows 10 1607+
+The app is a **self-contained .NET 10 application**: the .NET runtime is embedded inside the
+executable. That sets a hard floor at the operating systems .NET 10 supports — Windows 10 1607+
 and Windows 11. It is not a packaging choice; the runtime itself does not load on older kernels.
 
 The other end of the range has the same problem in reverse:
 
 - Windows XP supports **.NET Framework up to 4.0** (4.8 requires Windows 7 SP1+).
-- Our code uses .NET 8 APIs and C# 12 features that do not exist there: `Span<T>`-based packet
+- Our code uses .NET 10 APIs and modern C# features that do not exist there: `Span<T>`-based packet
   parsing, unmanaged function pointers (`delegate*`) for wpcap, `Environment.TickCount64`,
   `Task.WaitAsync`, records, etc.
 - Single-file publishing does not exist for .NET Framework; it is framework-dependent by nature.

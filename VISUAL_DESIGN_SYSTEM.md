@@ -40,7 +40,7 @@
 
 | Question | Answer |
 |---|---|
-| UI framework | **WPF** on **.NET 8** (`net8.0-windows`, `UseWPF=true`) |
+| UI framework | **WPF** on **.NET 10** (`net10.0-windows`, `UseWPF=true`) |
 | Markup | XAML with implicit styles and `ControlTemplate`s |
 | UI pattern | MVVM (hand-rolled `ObservableObject` + `RelayCommand`) |
 | Theme model | Two complete palette dictionaries (**Dark**, **Light**) swapped at runtime |
@@ -74,7 +74,7 @@ Everything else in this document is convention, layout guidance, and adaptation 
 
 | Layer | Choice in this project | Notes for reuse |
 |---|---|---|
-| Runtime | .NET 8 (`net8.0-windows`) | Windows-only; WPF is not cross-platform |
+| Runtime | .NET 10 (`net10.0-windows`) | Windows-only; WPF is not cross-platform |
 | UI framework | WPF (`UseWPF=true`) | Hardware-accelerated vector rendering |
 | Language | C# with nullable + implicit usings | No external MVVM framework |
 | Markup | XAML resource dictionaries | Merged into `Application.Resources` |
@@ -1663,8 +1663,8 @@ Skeleton:
 
 ### 10.1 Prerequisites
 
-- .NET 8 SDK (or newer) on Windows.
-- A WPF project: `<UseWPF>true</UseWPF>`, `<TargetFramework>net8.0-windows</TargetFramework>`.
+- .NET 10 SDK (or newer) on Windows.
+- A WPF project: `<UseWPF>true</UseWPF>`, `<TargetFramework>net10.0-windows</TargetFramework>`.
 - PerMonitorV2 DPI awareness in `app.manifest`.
 
 ### 10.2 Step-by-step
@@ -1987,7 +1987,7 @@ accent variants, a chart data table, and `AutomationProperties.Name` on icon-onl
 
 | This document | Source file | Notes |
 |---|---|---|
-| Tech inventory | `src/SelfishNetV2.App/SelfishNetV2.App.csproj` | .NET 8, WPF, no UI packages |
+| Tech inventory | `src/SelfishNetV2.App/SelfishNetV2.App.csproj` | .NET 10, WPF, no UI packages |
 | Palette — dark | `Themes/Dark.xaml` | Verbatim |
 | Palette — light | `Themes/Light.xaml` | Verbatim |
 | Control styles | `Themes/Controls.xaml` | Verbatim |

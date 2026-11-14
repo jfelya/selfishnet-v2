@@ -1,12 +1,12 @@
 # src/ — Clean Rebuild
 
-Stack: **C# / .NET 8 / WPF**, self-contained single-file builds for `win-x64` and `win-x86`.
-Implemented end-to-end; the solution builds clean and all 124 tests pass.
+Stack: **C# / .NET 10 / WPF**, self-contained single-file build for `win-x64`.
+Implemented end-to-end; the solution builds clean and all 126 tests pass.
 
 ```powershell
 dotnet build SelfishNetV2.sln -c Release
 dotnet test  SelfishNetV2.sln -c Release
-publish.bat          # → ..\publish\{x64,x86}\SelfishNetV2.exe
+publish.bat          # → ..\publish\x64\SelfishNetV2.exe
 ..\tools\clean.cmd   # reclaim build output afterwards (~1 GB per publish)
 ```
 

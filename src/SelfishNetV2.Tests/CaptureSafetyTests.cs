@@ -135,6 +135,30 @@ public class CaptureSafetyTests
     }
 
     [Fact]
+    public async Task AdapterRemovedError_IsClassified()
+    {
+        var driver = new ImmediateIpErrorDriver(
+            "The interface disappeared (error code ERROR_DEVICE_REMOVED/STATUS_DEVICE_REMOVED)");
+        var catalog = new DeviceCatalog();
+        using var engine = new ModernEngine(catalog, driver);
+        EngineErrorKind? error = null;
+        engine.Error += (_, e) => error = e.Kind;
+        Assert.True(engine.Open(Adapter));
+        driver.Inject(ArpReply(Router, RouterIp, Local, LocalIp));
+        driver.Inject(ArpReply(Victim, VictimIp, Local, LocalIp));
+        Assert.True(WaitUntil(() =>
+            catalog.TryGetByIp(RouterIp, out var gw) && gw.HasKnownMac &&
+            catalog.TryGetByIp(VictimIp, out var v) && v.HasKnownMac));
+
+        await engine.StartShapingAsync();
+
+        Assert.True(WaitUntil(() => error == EngineErrorKind.AdapterRemoved, 3000),
+            $"error was {error}");
+        Assert.True(WaitUntil(() => engine.State != EngineRunState.Shaping, 3000),
+            $"engine state was {engine.State}");
+    }
+
+    [Fact]
     public async Task FailedHeal_KeepsClaimForCloseRetry()
     {
         var driver = new FailingSendDriver();
@@ -224,8 +248,10 @@ public class CaptureSafetyTests
 
     private sealed class FaultingCapture : IPcapCapture
     {
+        private readonly string _error;
+        public FaultingCapture(string error = "injected receive error") => _error = error;
         public string DeviceName => "faulted";
-        public string LastError => "injected receive error";
+        public string LastError => _error;
         public int ReceiveCount;
         public int Send(ReadOnlySpan<byte> frame) => 0;
 
@@ -302,6 +328,8 @@ public class CaptureSafetyTests
     private sealed class ImmediateIpErrorDriver : IPcapDriver
     {
         private readonly LoopbackDriver _inner = new();
+        private readonly string _error;
+        public ImmediateIpErrorDriver(string error = "injected receive error") => _error = error;
         public string BackendName => "Loopback/immediate-error";
         public IReadOnlyList<PcapDeviceInfo> EnumerateDevices() => _inner.EnumerateDevices();
         public void Inject(ReadOnlySpan<byte> frame) => _inner.Inject(frame);
@@ -309,7 +337,7 @@ public class CaptureSafetyTests
         public IPcapCapture OpenLive(string deviceName, string? filter, int snaplen = 65535,
             int promisc = 0, int timeoutMs = 20)
         {
-            if (filter == "ip or (vlan and ip)") return new FaultingCapture();
+            if (filter == "ip or (vlan and ip)") return new FaultingCapture(_error);
             return _inner.OpenLive(deviceName, filter, snaplen, promisc, timeoutMs);
         }
     }

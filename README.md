@@ -15,8 +15,8 @@ shaping), shipped as a **single portable Windows executable**.
 | OS | Status |
 |---|---|
 | Windows 11 (all releases) | ✅ Supported |
-| Windows 10 1607 → 22H2 (all releases) | ✅ Supported (1607 = .NET 8 runtime floor) |
-| Windows 10/11 x64 or 32-bit | ✅ `publish/x64` · `publish/x86` |
+| Windows 10 1607 → 22H2 (all releases) | ✅ Supported (1607 = .NET 10 runtime floor) |
+| Windows 10/11 x64 | ✅ `publish/x64` |
 | Windows 8.1 / 7 SP1 | ❌ Not in the modern build — see `docs/PENDING.md` (P1) |
 | Windows XP SP3 | ❌ Not supported; the old reference build is no longer included (`docs/PENDING.md` P2) |
 
@@ -41,17 +41,14 @@ single elevated restart only if the driver is restricted.
 | Auto-discovery (60 s background sweep + passive ARP learning) | ✅ |
 | Robust healing (registry-backed, broadcast gratuitous, gateway re-resolve) | ✅ |
 | Reactive ARP defense (Modern engine) | ✅ |
-| Automated tests | ✅ 124/124 green |
+| Automated tests | ✅ 126/126 green |
 
-**Portable build:** run `src/publish.bat` → two self-contained exes in
-`publish/x64/SelfishNetV2.exe` and `publish/x86/SelfishNetV2.exe`. Copies at the
-project root are local convenience only and are git-ignored. No .NET install is
-needed — copy one anywhere.
+**Portable build:** run `src/publish.bat` → one self-contained x64 exe in
+`publish/x64/SelfishNetV2.exe`. The root copy is local convenience only and is
+git-ignored. No .NET install is needed — copy it anywhere.
 
-> Why two files? A self-contained .NET app embeds its runtime, and the runtime is
-> architecture-specific, so one exe cannot cover both 32-bit and 64-bit Windows. Same
-> source, two builds. (A single ~5–10 MB framework-dependent exe is possible if the
-> .NET 8 Desktop Runtime is installed — that breaks the zero-dependency goal.)
+> The build is **x64-only**. 32-bit Windows is no longer supported; use the last
+> 32-bit release if you still need it.
 
 ## Run
 
@@ -93,6 +90,10 @@ needed — copy one anywhere.
 - **One instance, fail-safe driver:** a second copy exits with a clear message. If the packet
   capture stops with a driver error, the app stops shaping and attempts to heal instead of
   leaving victims pointed at a PC that no longer forwards.
+- **Network changes:** if the active adapter disappears or its IP/gateway changes, the app
+  stops shaping, attempts a best-effort restore, clears the old LAN rows, and prompts for the
+  new adapter. Reconnecting to the old network is required to retry restoration; devices may
+  otherwise keep stale ARP entries until their caches expire.
 - **Comfort features:** per-device speeds refresh once per second, limit boxes accept digits only and
   commit empty as 0, **Reset limits** returns every device to unlimited in one click, and a
   sub-1 KByte/s cap is shown as `<1` instead of looking unlimited.
@@ -101,12 +102,12 @@ needed — copy one anywhere.
 
 ```powershell
 dotnet build src/SelfishNetV2.sln -c Release      # build everything
-dotnet test  src/SelfishNetV2.sln -c Release      # 124 tests (no hardware/admin needed)
-src/publish.bat                                    # self-contained exes (x64 + x86)
+dotnet test  src/SelfishNetV2.sln -c Release      # 126 tests (no hardware/admin needed)
+src/publish.bat                                    # self-contained x64 exe
 tools\clean.cmd                                    # reclaim build output (~1 GB after publishing)
 ```
 
-Requirements: .NET SDK 8, Windows 10/11, Npcap (or WinPcap) for live packet I/O.
+Requirements: .NET SDK 10, Windows 10/11 x64, Npcap (or WinPcap) for live packet I/O.
 
 ## Folder map
 
@@ -115,7 +116,7 @@ Requirements: .NET SDK 8, Windows 10/11, Npcap (or WinPcap) for live packet I/O.
 | `AI_ENVIRONMENT_NOTES.md` | **Project context / single source of truth** — read this first |
 | `docs/` | Findings, master plan (`REVAMP_BLUEPRINT.md`), OS support, postmortem, backlog |
 | `GUIDE_EN.txt` / `GUIDE_ES.txt` | Plain-language user guides (English / Spanish) |
-| `SelfishNetV2-*.exe` | Local published copies at the root (git-ignored; build with `src/publish.bat`) |
+| `SelfishNetV2-x64.exe` | Local published x64 copy at the root (git-ignored; build with `src/publish.bat`) |
 | `src/` | The revamp: Core · Drivers · Engines · Services · App (WPF) · Tests |
 | `tools/` | `clean.cmd` (reclaim space) and artifact policy |
 | `publish/` | Build output (git-ignored) |

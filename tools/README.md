@@ -16,8 +16,8 @@ No Administrator rights are needed — it only touches files inside the project 
 
 ## Artifact policy
 
-- **Source, docs and guides are versioned.** The two portable exes at the root and all build
-  output are **git-ignored**; build them with `src\publish.bat` when needed.
+- **Source, docs and guides are versioned.** The portable x64 exe at the root and all build
+  output are **git-ignored**; build it with `src\publish.bat` when needed.
 - A fresh clone contains source and docs, not binaries. This keeps the repository small and
   avoids Git file-size limits.
 - `tools\clean.cmd -IncludeExes` also deletes the local root copies.

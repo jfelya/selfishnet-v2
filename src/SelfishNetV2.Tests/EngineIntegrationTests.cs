@@ -349,6 +349,26 @@ public class EngineIntegrationTests
     }
 
     [Fact]
+    public async Task Orchestrator_DropAdapter_ClearsSessionAndCatalog()
+    {
+        var driver = new LoopbackDriver();
+        var orch = new EngineOrchestrator(driver, KnownDevicesStore.InMemory(), EngineKind.Modern);
+        Assert.True(orch.OpenAdapter(TestAdapter));
+        driver.Inject(ArpReply(Router, RouterIp, Local, LocalIp));
+        driver.Inject(ArpReply(Victim, VictimIp, Local, LocalIp));
+        Assert.True(WaitUntil(() =>
+            orch.Catalog.TryGetByIp(RouterIp, out var gw) && gw.HasKnownMac &&
+            orch.Catalog.TryGetByIp(VictimIp, out var v) && v.HasKnownMac));
+
+        await orch.DropAdapterAsync();
+
+        Assert.Null(orch.Session);
+        Assert.Null(orch.CurrentAdapter);
+        Assert.Equal(0, orch.Catalog.Count);
+        orch.Dispose();
+    }
+
+    [Fact]
     public async Task Orchestrator_Swap_HealsThenSwitchesEngine()
     {
         var driver = new LoopbackDriver();

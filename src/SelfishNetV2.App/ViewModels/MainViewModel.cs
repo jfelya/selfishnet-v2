@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Threading;
@@ -36,6 +37,8 @@ public sealed class MainViewModel : ObservableObject
     private bool _isEngineModern = true;
     private DeviceViewModel? _selectedDevice;
     private readonly DispatcherTimer _fastTimer = new();
+    private int _recovering;
+    private bool _networkSubscribed;
 
     public MainViewModel(EngineOrchestrator? orch, AdapterService adapters, SettingsStore settings,
         string? driverProblem, bool driverRestricted = false)
@@ -84,6 +87,9 @@ public sealed class MainViewModel : ObservableObject
             _orch.Catalog.DeviceAdded += d => Dispatch(() => AddRow(d));
             _orch.Catalog.DeviceRemoved += d => Dispatch(() => RemoveRow(d));
             _orch.Catalog.DeviceUpdated += d => Dispatch(() => RefreshRow(d));
+            NetworkChange.NetworkAddressChanged += OnNetworkAddressChanged;
+            NetworkChange.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
+            _networkSubscribed = true;
         }
         ApplyLanguage();
         RefreshState();
@@ -326,10 +332,57 @@ public sealed class MainViewModel : ObservableObject
         new Views.AboutWindow(info) { Owner = Application.Current.MainWindow }.ShowDialog();
     }
 
+    // ---------------- network / adapter recovery ----------------
+
+    private void OnNetworkAddressChanged(object? sender, EventArgs e) => Dispatch(CheckNetworkChanged);
+    private void OnNetworkAvailabilityChanged(object? sender, NetworkAvailabilityEventArgs e) => Dispatch(CheckNetworkChanged);
+
+    private void CheckNetworkChanged()
+    {
+        if (_orch?.CurrentAdapter is not { } current || _recovering != 0) return;
+        var now = _adapters.GetUsableAdapters().FirstOrDefault(a => a.Id == current.Id);
+        if (now == null ||
+            now.LocalIpKey != current.LocalIpKey ||
+            now.GatewayIpKey != current.GatewayIpKey ||
+            now.MaskKey != current.MaskKey ||
+            now.MacKey != current.MacKey ||
+            now.PcapName != current.PcapName)
+        {
+            _ = BeginAdapterRecoveryAsync();
+        }
+    }
+
+    private async Task BeginAdapterRecoveryAsync()
+    {
+        if (_orch == null || Interlocked.Exchange(ref _recovering, 1) != 0) return;
+        try
+        {
+            IsBusy = true;
+            BusyText = LocalizationManager.Get("MsgAdapterRecovering");
+            try { await _orch.DropAdapterAsync(); }
+            catch { /* best effort; the picker can still open a new adapter */ }
+            IsBusy = false;
+            RefreshState();
+            MessageRequested?.Invoke(LocalizationManager.Get("MsgAdapterRemoved"),
+                LocalizationManager.Get("AppTitle"), false);
+            if (_adapters.GetUsableAdapters().Count > 0) PickAdapter();
+        }
+        finally
+        {
+            IsBusy = false;
+            Interlocked.Exchange(ref _recovering, 0);
+        }
+    }
+
     // ---------------- engine event handling ----------------
 
     private void OnEngineError(EngineErrorEventArgs e)
     {
+        if (e.Kind == EngineErrorKind.AdapterRemoved)
+        {
+            _ = BeginAdapterRecoveryAsync();
+            return;
+        }
         if (e.Kind == EngineErrorKind.AccessDenied)
         {
             _driverRestricted = true;
@@ -344,6 +397,7 @@ public sealed class MainViewModel : ObservableObject
             EngineErrorKind.SendFailed => LocalizationManager.Get("MsgSendFailed", e.Detail),
             EngineErrorKind.AbiMismatch => LocalizationManager.Get("MsgAbiError", e.Detail),
             EngineErrorKind.DriverOpen => LocalizationManager.Get("MsgDriverError", e.Detail),
+            EngineErrorKind.AdapterRemoved => LocalizationManager.Get("MsgAdapterRemoved"),
             EngineErrorKind.ReceiveError => LocalizationManager.Get("MsgDriverError", e.Detail),
             _ => LocalizationManager.Get("MsgDriverError", e.Detail),
         };
@@ -550,6 +604,12 @@ public sealed class MainViewModel : ObservableObject
     public void Shutdown()
     {
         _fastTimer.Stop();
+        if (_networkSubscribed)
+        {
+            NetworkChange.NetworkAddressChanged -= OnNetworkAddressChanged;
+            NetworkChange.NetworkAvailabilityChanged -= OnNetworkAvailabilityChanged;
+            _networkSubscribed = false;
+        }
         // SessionEnding owns a bounded background teardown; do not block logoff
         // with a second, unbounded CloseCore on the UI thread.
         if (IsSessionEnding) return;

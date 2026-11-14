@@ -8,7 +8,7 @@ Items consciously deferred. Nothing here blocks the current Windows 10/11 builds
 
 **Goal:** run the same engine stack on Windows 7 SP1 through Windows 11 from a *separate* artifact.
 
-**Why it is not in the current build:** the modern app is self-contained .NET 8, whose runtime
+**Why it is not in the current build:** the modern app is self-contained .NET 10, whose runtime
 requires Windows 10 1607+. Windows 7 SP1 caps at .NET Framework 4.8 (and 4.8 is the last
 supported line for 8.1/7). One binary cannot span both; a second, framework-dependent build is
 the only realistic path.
@@ -25,7 +25,7 @@ the only realistic path.
 - [ ] Publish framework-dependent (single-file does not exist on .NET Framework).
 - [ ] Packet driver: Npcap on Windows 7, or WinPcap 4.1.3 as fallback.
 - [ ] Re-run the full engine/parity test suite against the legacy build.
-- [ ] Test matrix: Windows 7 SP1 x86 and x64 (VMs).
+- [ ] Test matrix: Windows 7 SP1 x64 (VM).
 
 **Effort:** medium–large. **Payoff:** Windows 7 SP1 → 11 users. **Risk:** two artifacts to
 maintain and a second test matrix.

@@ -13,6 +13,8 @@ public enum EngineErrorKind
     DriverOpen,
     /// <summary>The packet driver denied access (restricted to administrators).</summary>
     AccessDenied,
+    /// <summary>The active network interface disappeared or was reset.</summary>
+    AdapterRemoved,
     /// <summary>The selected adapter has no default gateway — shaping is impossible.</summary>
     NoGateway,
     /// <summary>pcap_sendpacket failed while spoofing/healing.</summary>

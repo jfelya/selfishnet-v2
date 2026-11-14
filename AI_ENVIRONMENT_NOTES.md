@@ -18,7 +18,7 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 **portable Windows desktop app** with a modern UI.
 
 - **Owner:** Fely. **Remote:** `https://github.com/jfelya/selfishnet-v2` (branch `main`).
-- **Stack:** C# / .NET 8 / WPF, self-contained single-file executables (x64, x86).
+- **Stack:** C# / .NET 10 / WPF, one self-contained single-file x64 executable.
 - **Bilingual:** English (US) and Latin American Spanish (es-419), hot-swappable.
 - **Defaults:** Spanish UI + dark theme, window starts maximized.
 - **Only external prerequisite:** Npcap (or legacy WinPcap). The app itself needs no installer.
@@ -28,9 +28,9 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 | Item | State |
 |---|---|
 | Build | `dotnet build src/SelfishNetV2.sln -c Release` → 0 warnings, 0 errors |
-| Tests | **124/124 green** in ~15 s (no hardware, no admin) |
+| Tests | **126/126 green** in ~18 s (no hardware, no admin) |
 | Field test | Real LAN: both engines limited a phone; runtime engine switch worked; healing worked |
-| Artifacts | Local `SelfishNetV2-x64.exe` (68.6 MB) / `-x86.exe` (63.3 MB), rebuilt 2026-10-29 from `main`; git-ignored, not in a clone |
+| Artifacts | Local `SelfishNetV2-x64.exe` only; rebuilt from the current source; git-ignored, not in a clone |
 | OS support | Windows 10 1607 → 22H2 and all Windows 11 releases; floor declared and guard-tested |
 | Elevation | Starts unelevated; offers one elevated restart only if Npcap restricts the driver |
 | Repo | Source + docs + guides; reference/prototype removed; portable exes git-ignored |
@@ -56,19 +56,29 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
   named mutex prevents two copies; adapter errors are specific; failed heals keep
   their claim for a close retry; logoff teardown is bounded. Test packages are
   current and vulnerability-free; docs/guides are current. Final verification:
-  Release build 0 warnings/0 errors, **124/124 tests green**, package audit clean,
+  Release build 0 warnings/0 errors, **126/126 tests green**, package audit clean,
   working tree clean on branch `revamp-hardening`.
 - Standing user requests: keep this file's storyline current after every
   milestone; update `GUIDE_EN.txt` / `GUIDE_ES.txt` when behavior changes; never
   commit the root executables (they are git-ignored); `reference/` and
   `prototype/` were removed on 2026-10-29 after the hardening branch was accepted.
 
+## 2c. Current workstream — .NET 10, x64-only, network recovery (2026-11-13)
+
+- Stack: .NET 10 LTS, WPF, single self-contained x64 exe.
+- Network recovery: adapter removal/change is detected from Npcap errors and
+  `NetworkChange` events; shaping stops, old LAN rows clear, and the app prompts
+  for the new adapter. The message explains that old-LAN ARP entries may persist
+  until caches expire or the old network is reconnected.
+- Tests: 126/126 green; .NET 10 build 0 warnings/0 errors.
+- 32-bit Windows is no longer supported.
+
 ## 3. How to build, test, publish, clean
 
 ```powershell
 dotnet build src/SelfishNetV2.sln -c Release      # build everything
-dotnet test  src/SelfishNetV2.sln -c Release      # 124 tests, no hardware/admin needed
-src\publish.bat                                    # → publish\{x64,x86}\SelfishNetV2.exe
+dotnet test  src/SelfishNetV2.sln -c Release      # 126 tests, no hardware/admin needed
+src\publish.bat                                    # → publish\x64\SelfishNetV2.exe
 tools\clean.cmd                                    # reclaim build output (~1 GB after publishing)
 ```
 
@@ -128,7 +138,7 @@ SelfishNet v2/
 ├── README.md                        # human-facing overview, support matrix, hygiene
 ├── GUIDE_EN.txt / GUIDE_ES.txt      # plain-language user guides (user-maintained, do not rewrite)
 ├── VISUAL_DESIGN_SYSTEM.md          # user-provided design-system reference
-├── SelfishNetV2-{x64,x86}.exe        # local published copies — git-ignored
+├── SelfishNetV2-x64.exe              # local published x64 copy — git-ignored
 ├── docs/                            # blueprint, findings, OS support, postmortem, backlog, units, i18n spec
 ├── src/                             # the revamp
 │   ├── SelfishNetV2.Core/           #   DTOs, DeviceCatalog, ArpFrameBuilder, PacketClassifier, TokenBucket
@@ -136,9 +146,9 @@ SelfishNet v2/
 │   ├── SelfishNetV2.Engines/        #   IEngineSession, EngineSessionBase, LegacyEngine, ModernEngine
 │   ├── SelfishNetV2.Services/       #   Localization, Settings, KnownDevices, EngineOrchestrator, formatter
 │   ├── SelfishNetV2.App/            #   WPF shell: Themes/, Theming/, Controls/, ViewModels/, Views/
-│   ├── SelfishNetV2.Tests/          #   124 tests
+│   ├── SelfishNetV2.Tests/          #   126 tests
 │   ├── Directory.Build.targets      #   OS floor + WinRT projection exclusion
-│   └── publish.bat                  #   2-arch self-contained publish (x64 + x86)
+│   └── publish.bat                  #   self-contained x64 publish
 ├── tools/                           # clean.cmd/ps1 + README
 └── publish/                         # build output (git-ignored)
 ```
@@ -147,9 +157,9 @@ SelfishNet v2/
 
 | Decision | Reason |
 |---|---|
-| C#/.NET 8/WPF self-contained | The riskiest layer (wpcap P/Invoke) was already proven in C#; WPF delivers the UI without installers |
+| C#/.NET 10/WPF self-contained x64 | .NET 8 is out of support; .NET 10 LTS keeps the P/Invoke/WPF stack current without installers |
 | One exe per architecture | A self-contained .NET app embeds an arch-specific runtime; XP→11 in one binary is impossible |
-| OS floor declared as 10.0.14393 | .NET 8 minimum; `Directory.Build.targets` (not `.props` — there `$(TargetFramework)` is still empty and the condition silently fails) + a guard test |
+| OS floor declared as 10.0.14393 | .NET 10 minimum; `Directory.Build.targets` (not `.props` — there `$(TargetFramework)` is still empty and the condition silently fails) + a guard test |
 | WinRT projection excluded from publish | Raising the target platform dragged a 24 MB unused assembly into every bundle |
 | Dual engines | A/B comparison and an instant fallback; Legacy stays a faithful 2007 replica |
 | Healing registry | The prototype healed only currently-ticked devices, orphaning caches |
@@ -180,7 +190,7 @@ Rules adopted (keep them):
 6. Failure paths are tested on `LoopbackDriver` — no hardware required.
 7. Promises stay scoped (healing is best-effort; say so).
 
-## 8. Test map (124 tests)
+## 8. Test map (126 tests)
 
 | File | Guards |
 |---|---|
@@ -198,10 +208,12 @@ Rules adopted (keep them):
 | `PersistenceTests` | Atomic save, `.bak` recovery, corrupt-main fallback, one-write bulk update |
 | `ViewModelStateTests`, `AdapterMatchTests` | Saved cap rendering, sub-1 display, no pcap GUID match |
 | `SingleInstanceTests` | A second copy cannot acquire the named mutex |
+| `CaptureSafetyTests` (new case) | `ERROR_DEVICE_REMOVED` is classified as `AdapterRemoved` and stops shaping |
+| `EngineIntegrationTests` (new case) | Dropping an adapter clears the session and old LAN rows |
 
 ## 9. Environment and prerequisites
 
-- Windows 10/11 (target machine). .NET SDK 8 required only to build; the exes are standalone.
+- Windows 10/11 x64 (target machine). .NET SDK 10 required only to build; the exe is standalone.
 - Npcap (https://npcap.com) preferred, WinPcap fallback. Npcap's "restrict to administrators"
   install option decides whether elevation is needed.
 - `%AppData%\SelfishNetV2\` holds the only persistent data: `settings.json` (language, theme,
@@ -264,6 +276,11 @@ Rules adopted (keep them):
     replaced with a single current-state commit to remove old large blobs; `publish/` and
     every `src/**/bin` / `src/**/obj` were deleted as reproducible output. The rebuilt root
     executables were kept locally and remain git-ignored. No source behavior changed.
+16. **.NET 10, x64-only, network recovery (2026-11-13)** — migrated all projects to
+    .NET 10 LTS and a single x64 publish; added adapter-removal detection and a
+    `NetworkChange` watcher that stops shaping, drops the old LAN rows, and prompts for
+    the new adapter. The message explains that the old LAN may keep stale ARP entries
+    until caches expire or the old network is reconnected. Tests: 126/126.
 
 ## 11. Backlog (see `docs/PENDING.md`)
 

@@ -858,7 +858,19 @@ public abstract class EngineSessionBase : IEngineSession
                 catch { /* best effort: Close still retries any outstanding claims */ }
             });
         }
-        try { RaiseError(EngineErrorKind.ReceiveError, detail); } catch { }
+        EngineErrorKind kind = LooksLikeAdapterRemoved(detail)
+            ? EngineErrorKind.AdapterRemoved
+            : EngineErrorKind.ReceiveError;
+        try { RaiseError(kind, detail); } catch { }
+    }
+
+    private static bool LooksLikeAdapterRemoved(string? detail)
+    {
+        if (string.IsNullOrEmpty(detail)) return false;
+        return detail.Contains("ERROR_DEVICE_REMOVED", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("STATUS_DEVICE_REMOVED", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("interface disappeared", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("device removed", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool JoinThread(Thread? t, int timeoutMs = 5000)

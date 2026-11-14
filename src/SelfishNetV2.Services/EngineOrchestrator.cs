@@ -124,6 +124,34 @@ public sealed class EngineOrchestrator : IDisposable
             await _session.StopAndHealAsync().ConfigureAwait(false);
     }
 
+    /// <summary>Called when the active interface disappears or changes network. Stops
+    /// shaping, attempts a best-effort heal, tears down the session, and drops the old
+    /// LAN's rows. The caller can then open the new adapter.</summary>
+    public async Task DropAdapterAsync()
+    {
+        await _switchLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_session != null)
+            {
+                try { await _session.StopAndHealAsync().ConfigureAwait(false); }
+                catch { }
+                try { _session.Close(); }
+                catch { }
+                try { _session.Dispose(); }
+                catch { }
+                _session = null;
+            }
+            _adapter = null;
+            _catalog.Clear();
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
+        finally
+        {
+            _switchLock.Release();
+        }
+    }
+
     /// <summary>The runtime engine toggle. Heals the LAN, swaps the engine, restores state.</summary>
     public async Task<bool> SwitchEngineAsync(EngineKind kind, CancellationToken ct = default)
     {

@@ -144,8 +144,7 @@ Using Stop or closing the app normally gives SelfishNet an opportunity to send c
 --------------------------------------------------------------------
 7. WHAT IT NEEDS TO RUN
 --------------------------------------------------------------------
-  - Windows 10 or 11. Builds are available for both 64-bit and 32-bit
-    Windows. Use the x64 build on a modern 64-bit PC.
+  - Windows 10 or 11, 64-bit. This build supports x64 Windows only.
   - Npcap (https://npcap.com) or legacy WinPcap. Npcap is the modern,
     signed packet-capture driver, and the app detects the available
     driver automatically. This is the only external component required
@@ -191,6 +190,10 @@ a second copy shows a short message and exits.
   - If the packet driver stops unexpectedly, the app stops shaping and
     attempts to restore the ARP tables. Fix or reinstall the driver, then
     restart the app.
+  - If Wi-Fi disconnects or changes networks, shaping stops and the app
+    asks you to select the new adapter. Devices on the old network may keep
+    stale ARP entries until their caches expire; reconnect to that network
+    if you need SelfishNet to attempt restoration.
 
 --------------------------------------------------------------------
 9. QUICK START
