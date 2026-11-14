@@ -30,7 +30,7 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 | Build | `dotnet build src/SelfishNetV2.sln -c Release` → 0 warnings, 0 errors |
 | Tests | **126/126 green** in ~18 s (no hardware, no admin) |
 | Field test | Real LAN: both engines limited a phone; runtime engine switch worked; healing worked |
-| Artifacts | Local `SelfishNetV2-x64.exe` only; rebuilt from the current source; git-ignored, not in a clone |
+| Artifacts | Local `SelfishNetV2-x64.exe` (62.1 MB), rebuilt 2026-11-13 from .NET 10 x64 source; git-ignored, not in a clone |
 | OS support | Windows 10 1607 → 22H2 and all Windows 11 releases; floor declared and guard-tested |
 | Elevation | Starts unelevated; offers one elevated restart only if Npcap restricts the driver |
 | Repo | Source + docs + guides; reference/prototype removed; portable exes git-ignored |
@@ -71,6 +71,8 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
   for the new adapter. The message explains that old-LAN ARP entries may persist
   until caches expire or the old network is reconnected.
 - Tests: 126/126 green; .NET 10 build 0 warnings/0 errors.
+- Published x64 startup smoke test passed on Windows with Npcap installed (main
+  window opened and closed cleanly; no shaping session was started).
 - 32-bit Windows is no longer supported.
 
 ## 3. How to build, test, publish, clean
