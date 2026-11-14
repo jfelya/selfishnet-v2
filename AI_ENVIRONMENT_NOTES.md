@@ -28,7 +28,7 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 | Item | State |
 |---|---|
 | Build | `dotnet build src/SelfishNetV2.sln -c Release` → 0 warnings, 0 errors |
-| Tests | **126/126 green** in ~18 s (no hardware, no admin) |
+| Tests | **127/127 green** in ~18 s (no hardware, no admin) |
 | Field test | Real LAN: both engines limited a phone; runtime engine switch worked; healing worked |
 | Artifacts | Local `SelfishNetV2-x64.exe` (62.1 MB), rebuilt 2026-11-13 from .NET 10 x64 source; git-ignored, not in a clone |
 | OS support | Windows 10 1607 → 22H2 and all Windows 11 releases; floor declared and guard-tested |
@@ -56,7 +56,7 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
   named mutex prevents two copies; adapter errors are specific; failed heals keep
   their claim for a close retry; logoff teardown is bounded. Test packages are
   current and vulnerability-free; docs/guides are current. Final verification:
-  Release build 0 warnings/0 errors, **126/126 tests green**, package audit clean,
+  Release build 0 warnings/0 errors, **127/127 tests green**, package audit clean,
   working tree clean on branch `revamp-hardening`.
 - Standing user requests: keep this file's storyline current after every
   milestone; update `GUIDE_EN.txt` / `GUIDE_ES.txt` when behavior changes; never
@@ -69,16 +69,18 @@ ARP discovery, bidirectional ARP spoofing, traffic shaping and per-device blocki
 - Network recovery: adapter removal/change is detected from Npcap errors and
   `NetworkChange` events; shaping stops, old LAN rows clear, and the app prompts
   for the new adapter.
-- Tests: 126/126 green; .NET 10 build 0 warnings/0 errors.
+- Tests: 127/127 green; .NET 10 build 0 warnings/0 errors.
 - Published x64 startup smoke test passed on Windows with Npcap installed (main
   window opened and closed cleanly; no shaping session was started).
+- Live LAN and adapter-loss test steps: `docs/LIVE_TEST_PLAN.md` (isolated test
+  network only; never disable the primary internet adapter).
 - 32-bit Windows is no longer supported.
 
 ## 3. How to build, test, publish, clean
 
 ```powershell
 dotnet build src/SelfishNetV2.sln -c Release      # build everything
-dotnet test  src/SelfishNetV2.sln -c Release      # 126 tests, no hardware/admin needed
+dotnet test  src/SelfishNetV2.sln -c Release      # 127 tests, no hardware/admin needed
 src\publish.bat                                    # → publish\x64\SelfishNetV2.exe
 tools\clean.cmd                                    # reclaim build output (~1 GB after publishing)
 ```
@@ -147,7 +149,7 @@ SelfishNet v2/
 │   ├── SelfishNetV2.Engines/        #   IEngineSession, EngineSessionBase, LegacyEngine, ModernEngine
 │   ├── SelfishNetV2.Services/       #   Localization, Settings, KnownDevices, EngineOrchestrator, formatter
 │   ├── SelfishNetV2.App/            #   WPF shell: Themes/, Theming/, Controls/, ViewModels/, Views/
-│   ├── SelfishNetV2.Tests/          #   126 tests
+│   ├── SelfishNetV2.Tests/          #   127 tests
 │   ├── Directory.Build.targets      #   OS floor + WinRT projection exclusion
 │   └── publish.bat                  #   self-contained x64 publish
 ├── tools/                           # clean.cmd/ps1 + README
@@ -191,7 +193,7 @@ Rules adopted (keep them):
 6. Failure paths are tested on `LoopbackDriver` — no hardware required.
 7. Promises stay scoped (healing is best-effort; say so).
 
-## 8. Test map (126 tests)
+## 8. Test map (127 tests)
 
 | File | Guards |
 |---|---|
@@ -207,7 +209,7 @@ Rules adopted (keep them):
 | `ShutdownHammerTests` | 300 start/stop/dispose cycles; engine open/close under load |
 | `CaptureSafetyTests` | Stuck receive thread is leaked, not closed; fatal receive error stops shaping and heals |
 | `PersistenceTests` | Atomic save, `.bak` recovery, corrupt-main fallback, one-write bulk update |
-| `ViewModelStateTests`, `AdapterMatchTests` | Saved cap rendering, sub-1 display, no pcap GUID match |
+| `ViewModelStateTests`, `AdapterMatchTests` | Saved cap rendering, sub-1 display, in-progress cap edit guard, no pcap GUID match |
 | `SingleInstanceTests` | A second copy cannot acquire the named mutex |
 | `CaptureSafetyTests` (new case) | `ERROR_DEVICE_REMOVED` is classified as `AdapterRemoved` and stops shaping |
 | `EngineIntegrationTests` (new case) | Dropping an adapter clears the session and old LAN rows |
@@ -280,7 +282,7 @@ Rules adopted (keep them):
 16. **.NET 10, x64-only, network recovery (2026-11-13)** — migrated all projects to
     .NET 10 LTS and a single x64 publish; added adapter-removal detection and a
     `NetworkChange` watcher that stops shaping, drops the old LAN rows, and prompts for
-    the new adapter. Tests: 126/126.
+    the new adapter. Tests: 127/127.
 
 ## 11. Backlog (see `docs/PENDING.md`)
 

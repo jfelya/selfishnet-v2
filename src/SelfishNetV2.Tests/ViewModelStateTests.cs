@@ -27,6 +27,23 @@ public class ViewModelStateTests
     }
 
     [Fact]
+    public void RefreshCaps_DoesNotOverwriteAnInProgressEdit()
+    {
+        var host = new MainViewModel(null, new AdapterService(null), new SettingsStore(), driverProblem: null);
+        var device = new Device(0xC0A80164, 0xAABBCCDDEE01) { CapDownBytesPerSec = 102_400 };
+        var vm = new DeviceViewModel(device, host);
+
+        vm.IsCapEditing = true;
+        device.CapDownBytesPerSec = 204_800;
+        vm.RefreshCaps();
+        Assert.Equal("100", vm.CapDownText);
+
+        vm.IsCapEditing = false;
+        vm.RefreshCaps();
+        Assert.Equal("200", vm.CapDownText);
+    }
+
+    [Fact]
     public void DeviceViewModel_ShowsSubUnitCap_AndPreservesItOnUnchangedCommit()
     {
         var orchestrator = new EngineOrchestrator(

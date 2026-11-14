@@ -34,6 +34,8 @@ public partial class MainWindow : Window
         Closed += OnClosed;
         DeviceGrid.SelectionChanged += (_, _) => SelectedChart.ClearData();
         DeviceGrid.PreviewKeyDown += OnGridKeyDown;
+        DeviceGrid.BeginningEdit += OnCapEditBeginning;
+        DeviceGrid.CellEditEnding += OnCapEditEnding;
 
         ApplyLocalization();
     }
@@ -133,6 +135,21 @@ public partial class MainWindow : Window
     }
 
     // ---------------- grid interaction ----------------
+
+    private void OnCapEditBeginning(object? sender, DataGridBeginningEditEventArgs e)
+    {
+        if (e.Column != ColDownCap && e.Column != ColUpCap) return;
+        if (e.Row.Item is DeviceViewModel vm) vm.IsCapEditing = true;
+    }
+
+    private void OnCapEditEnding(object? sender, DataGridCellEditEndingEventArgs e)
+    {
+        if (e.Column != ColDownCap && e.Column != ColUpCap) return;
+        if (e.Row.Item is not DeviceViewModel vm) return;
+        vm.IsCapEditing = false;
+        // Refresh after WPF commits the cell binding, not before.
+        Dispatcher.BeginInvoke(new Action(vm.RefreshCaps));
+    }
 
     private void OnGridKeyDown(object sender, KeyEventArgs e)
     {

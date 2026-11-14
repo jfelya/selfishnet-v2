@@ -1,7 +1,7 @@
 # src/ — Clean Rebuild
 
 Stack: **C# / .NET 10 / WPF**, self-contained single-file build for `win-x64`.
-Implemented end-to-end; the solution builds clean and all 126 tests pass.
+Implemented end-to-end; the solution builds clean and all 127 tests pass.
 
 ```powershell
 dotnet build SelfishNetV2.sln -c Release

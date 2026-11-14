@@ -78,6 +78,10 @@ public sealed class DeviceViewModel : ObservableObject
     public string DownText { get => _downText; private set => Set(ref _downText, value); }
     public string UpText { get => _upText; private set => Set(ref _upText, value); }
 
+    /// <summary>Set by the grid while a cap cell is being edited. Background model
+    /// updates must not replace the text the user is typing.</summary>
+    public bool IsCapEditing { get; set; }
+
     /// <summary>Cap shown in the current unit as plain text; "0" = unlimited.
     /// Empty or non-numeric input commits as 0 (the UI only allows digits).</summary>
     public string CapDownText
@@ -149,6 +153,7 @@ public sealed class DeviceViewModel : ObservableObject
 
     public void RefreshCaps()
     {
+        if (IsCapEditing) return; // keep the user's in-progress text
         _capDownText = FormatCap(_dev.CapDownBytesPerSec);
         _capUpText = FormatCap(_dev.CapUpBytesPerSec);
         OnPropertyChanged(nameof(CapDownText));

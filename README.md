@@ -41,7 +41,7 @@ single elevated restart only if the driver is restricted.
 | Auto-discovery (60 s background sweep + passive ARP learning) | ✅ |
 | Robust healing (registry-backed, broadcast gratuitous, gateway re-resolve) | ✅ |
 | Reactive ARP defense (Modern engine) | ✅ |
-| Automated tests | ✅ 126/126 green |
+| Automated tests | ✅ 127/127 green |
 
 **Portable build:** run `src/publish.bat` → one self-contained x64 exe in
 `publish/x64/SelfishNetV2.exe`. The root copy is local convenience only and is
@@ -101,7 +101,7 @@ git-ignored. No .NET install is needed — copy it anywhere.
 
 ```powershell
 dotnet build src/SelfishNetV2.sln -c Release      # build everything
-dotnet test  src/SelfishNetV2.sln -c Release      # 126 tests (no hardware/admin needed)
+dotnet test  src/SelfishNetV2.sln -c Release      # 127 tests (no hardware/admin needed)
 src/publish.bat                                    # self-contained x64 exe
 tools\clean.cmd                                    # reclaim build output (~1 GB after publishing)
 ```
@@ -113,7 +113,7 @@ Requirements: .NET SDK 10, Windows 10/11 x64, Npcap (or WinPcap) for live packet
 | Path | Contents |
 |---|---|
 | `AI_ENVIRONMENT_NOTES.md` | **Project context / single source of truth** — read this first |
-| `docs/` | Findings, master plan (`REVAMP_BLUEPRINT.md`), OS support, postmortem, backlog |
+| `docs/` | Findings, master plan, OS support, live test plan, postmortem, backlog |
 | `GUIDE_EN.txt` / `GUIDE_ES.txt` | Plain-language user guides (English / Spanish) |
 | `SelfishNetV2-x64.exe` | Local published x64 copy at the root (git-ignored; build with `src/publish.bat`) |
 | `src/` | The revamp: Core · Drivers · Engines · Services · App (WPF) · Tests |
