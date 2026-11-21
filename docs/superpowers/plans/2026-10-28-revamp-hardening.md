@@ -26,7 +26,7 @@ The Legacy wire format is unchanged.
 - Legacy ARP frame bytes and parity tests stay unchanged.
 - Every production change starts with a failing test; watch it fail before fixing.
 - Run the full `dotnet test src/SelfishNetV2.sln -c Release` at the end of every task.
-- Keep `AI_ENVIRONMENT_NOTES.md` and both guides current when behavior changes.
+- Keep `AGENTS.md` and both guides current when behavior changes.
 
 ## Review Focus
 
@@ -282,7 +282,7 @@ The Legacy wire format is unchanged.
 - Modify: `src/SelfishNetV2.App/Infrastructure/ElevationHelper.cs`
 - Modify: `src/SelfishNetV2.Tests/SelfishNetV2.Tests.csproj`
 - Modify: `src/SelfishNetV2.Tests/` package references and dead-code call sites
-- Modify: `README.md`, `AI_ENVIRONMENT_NOTES.md`, `src/README.md`,
+- Modify: `README.md`, `AGENTS.md`, `src/README.md`,
   `docs/REVAMP_BLUEPRINT.md`, `docs/UNIT_NOTATIONS.md`,
   `src/SelfishNetV2.Tests/CompatibilityTests.cs`, `docs/LOCALIZATION_SPEC.md`
 - Modify: `GUIDE_EN.txt` / `GUIDE_ES.txt` only if user-visible behavior changed
@@ -314,7 +314,7 @@ The Legacy wire format is unchanged.
 - [x] **Step 5: Update docs**
   Correct the test count to 96 (or the new total), publish output, settings path,
   compatibility file name, current localization keys, and the blueprint status.
-  Add a dated hardening entry to `AI_ENVIRONMENT_NOTES.md`.
+  Add a dated hardening entry to `AGENTS.md`.
   Update both guides only for user-visible changes (single instance, errors,
   discovery status).
 

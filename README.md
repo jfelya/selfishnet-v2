@@ -112,7 +112,7 @@ Requirements: .NET SDK 10, Windows 10/11 x64, Npcap (or WinPcap) for live packet
 
 | Path | Contents |
 |---|---|
-| `AI_ENVIRONMENT_NOTES.md` | **Project context / single source of truth** — read this first |
+| `AGENTS.md` | **Project rules + context / single source of truth** — read this first |
 | `docs/` | Findings, master plan, OS support, live test plan, postmortem, backlog |
 | `GUIDE_EN.txt` / `GUIDE_ES.txt` | Plain-language user guides (English / Spanish) |
 | `SelfishNetV2-x64.exe` | Local published x64 copy at the root (git-ignored; build with `src/publish.bat`) |

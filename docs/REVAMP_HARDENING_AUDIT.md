@@ -3,7 +3,7 @@
 > Status: **approved, implemented, and merged into `main` (2026-10-29)**. This is the audit record behind
 > `docs/superpowers/plans/2026-10-28-revamp-hardening.md`. It is a snapshot: the
 > baseline below was 96 tests; the implemented branch is at **124/124 green**.
-> The living project story stays in `AI_ENVIRONMENT_NOTES.md`.
+> The living project story stays in `AGENTS.md`.
 
 ## What this repo does
 

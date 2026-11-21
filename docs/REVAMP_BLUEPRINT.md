@@ -1,7 +1,7 @@
 # SelfishNet v2 — Revamp Blueprint (Historical Design Record)
 
 > Status: **historical design record; the rebuild is complete.** Current work and
-> test counts live in `AI_ENVIRONMENT_NOTES.md`; the 2026-10-28 hardening audit and
+> test counts live in `AGENTS.md`; the 2026-10-28 hardening audit and
 > plan are `docs/REVAMP_HARDENING_AUDIT.md` and
 > `docs/superpowers/plans/2026-10-28-revamp-hardening.md`. Test counts and status
 > tables in this file are kept as history, not as the current source of truth.
